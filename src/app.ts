@@ -1,6 +1,14 @@
-import express, { Express, json, urlencoded } from "express";
+import express, {
+  Express,
+  json,
+  urlencoded,
+  NextFunction,
+  Request,
+  Response,
+} from "express";
 import cors from "cors";
 import { SampleRouter } from "./routers/sample.router";
+import { error } from "console";
 
 const PORT = 7070;
 
@@ -22,6 +30,16 @@ export default class App {
   private routers(): void {
     const sampleRouter = new SampleRouter();
     this.app.use("/samples", sampleRouter.getRouter());
+  }
+
+  // Define error handling
+  handleError(): void {
+    this.app.use(
+      (error: Error, req: Request, res: Response, next: NextFunction) => {
+        console.log("ERROR", error);
+        return res.status(500).send(error);
+      }
+    );
   }
 
   public start(): void {
