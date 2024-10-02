@@ -9,3 +9,203 @@ datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
 }
+
+model User {
+  id                          Int                         @id @default(autoincrement())
+  email                       String                      @unique
+  password                    String            
+  role                        Role                        @default(STUDENT)
+  isActive                    Boolean?                    @default(false)
+  
+  activityPlans               ActivityPlan[]
+  observations                Observation[]
+  memos                       Memo[]
+  reports                     Report[]
+  selfEvaluations             SelfEvaluation[]
+  profile                     Profile?
+  observationComments         ObservationComment[]
+  observationLecturers        ObservationLecturer[]
+  memoComments                MemoComment[]
+  memoLecturers               MemoLecturer[]
+  activityPlanComments        ActivityPlanComment[]
+  activityPlanLecturers       ActivityPlanLecturer[]
+  selfEvaluationComments      SelfEvaluationComment[]
+  selfEvaluationLecturer      SelfEvaluationLecturer[]
+  reportLecturer              ReportLecturer[]
+  createAt                    DateTime                    @default(now())
+  updatedAt                   DateTime?                   @updatedAt
+}
+
+model Profile {
+  id              Int             @id @default(autoincrement())
+  user            User            @relation(fields: [userId], references: [id])
+  userId          Int             @unique
+  name            String  
+  address         String          @db.LongText  
+  nim             String
+  stase           String
+  startSchoolYear Int
+  endSchoolYear   Int        
+}
+
+model ActivityPlan {
+  id                    Int                     @id @default(autoincrement())
+  user                  User                    @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId                Int   
+  name                  String                  @db.LongText
+  startDate             DateTime                @db.Date
+  endDate               DateTime                @db.Date
+  status                ActivityPlanStatus?     @default(Aktif)
+  active                Boolean?                @default(true)
+  createAt              DateTime                @default(now())
+  updatedAt             DateTime?               @updatedAt
+  activityPlanComment   ActivityPlanComment?  
+  activityPlanLecturer  ActivityPlanLecturer?  
+}
+
+model ActivityPlanComment {
+  id              Int                 @id @default(autoincrement())
+  activityPlan    ActivityPlan        @relation(fields: [activityPlanId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  activityPlanId  Int                 @unique
+  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId          Int                 
+  rating          Int?                @default(0)
+  comment         String?             @db.LongText
+}
+
+enum ActivityPlanStatus {
+  Aktif
+  Reschedule
+  Batal
+}
+
+model ActivityPlanLecturer {
+  id                  Int             @id @default(autoincrement())
+  activityPlan        ActivityPlan    @relation(fields: [activityPlanId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  activityPlanId      Int             @unique 
+  user                User            @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId              Int               
+}
+
+model Observation {
+  id                    Int                 @id @default(autoincrement())
+  user                  User                @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId                Int
+  name                  String              @db.LongText
+  description           String              @db.LongText
+  date                  DateTime            @db.Date
+  image                 String              @db.LongText
+  active                Boolean?            @default(true)
+  createAt              DateTime            @default(now())
+  updatedAt             DateTime?           @updatedAt
+  observationComments   ObservationComment?
+  observationLecturers  ObservationLecturer?
+}
+
+
+model Report {
+  id                    Int                 @id @default(autoincrement())
+  user                  User                @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId                Int
+  date                  DateTime            @db.Date
+  image                 String              @db.LongText
+  active                Boolean?            @default(true)
+  createAt              DateTime            @default(now())
+  updatedAt             DateTime?           @updatedAt
+  reportLecturer        ReportLecturer?
+}
+
+model ReportLecturer {
+  id                Int             @id @default(autoincrement())
+  report            Report          @relation(fields: [reportId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  reportId          Int             @unique 
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId            Int               
+}
+
+model ObservationComment {
+  id            Int                 @id @default(autoincrement())
+  observation   Observation         @relation(fields: [observationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  observationId Int                 @unique
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId        Int                 
+  rating        Int?                @default(0)
+  comment       String?             @db.LongText
+}
+
+model ObservationLecturer {
+  id                Int             @id @default(autoincrement())
+  memo              Observation     @relation(fields: [observationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  observationId     Int             @unique 
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId            Int               
+}
+
+model Memo {
+  id            Int                 @id @default(autoincrement())
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId        Int
+  title         String              @db.LongText
+  active        Boolean?            @default(true)
+  createAt      DateTime            @default(now())
+  updatedAt     DateTime?           @updatedAt
+  memoComment   MemoComment?
+  memoLecturer  MemoLecturer?
+}
+
+model MemoLecturer {
+  id            Int                 @id @default(autoincrement())
+  memo          Memo                @relation(fields: [memoId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  memoId        Int                 @unique 
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId        Int               
+}
+
+model MemoComment {
+  id            Int                 @id @default(autoincrement())
+  memo          Memo                @relation(fields: [memoId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  memoId        Int                 @unique 
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId        Int               
+  rating        Int?                @default(0)
+  comment       String?             @db.LongText
+}
+
+model SelfEvaluation {
+  id                      Int                     @id @default(autoincrement())
+  user                    User                    @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId                  Int                     
+  description             String                  @db.LongText
+  createAt                DateTime                @default(now())
+  updatedAt               DateTime?               @updatedAt
+  active                  Boolean?                @default(true)
+  selfEvaluation          SelfEvaluationComment?
+  selfEvaluationLecturer  SelfEvaluationLecturer?
+}
+
+
+model SelfEvaluationLecturer {
+  id                Int                 @id @default(autoincrement())
+  selfEvaluation    SelfEvaluation      @relation(fields: [selfEvaluationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  selfEvaluationId  Int                 @unique 
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId            Int               
+}
+
+model SelfEvaluationComment {
+  id                Int                 @id @default(autoincrement())
+  selfEvaluation    SelfEvaluation      @relation(fields: [selfEvaluationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  selfEvaluationId  Int                 @unique 
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId            Int               
+  rating            Int?                @default(0)
+  comment           String?             @db.LongText
+  createAt          DateTime            @default(now())
+  updatedAt         DateTime?           @updatedAt
+}
+
+enum Role {
+  STUDENT
+  LECTURER
+  ADMIN
+}
