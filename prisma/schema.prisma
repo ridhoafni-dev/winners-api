@@ -6,8 +6,9 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -41,7 +42,7 @@ model Profile {
   user            User            @relation(fields: [userId], references: [id])
   userId          Int             @unique
   name            String  
-  address         String          @db.LongText  
+  address         String          
   nim             String
   stase           String
   startSchoolYear Int
@@ -52,7 +53,7 @@ model ActivityPlan {
   id                    Int                     @id @default(autoincrement())
   user                  User                    @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   userId                Int   
-  name                  String                  @db.LongText
+  name                  String                  
   startDate             DateTime                @db.Date
   endDate               DateTime                @db.Date
   status                ActivityPlanStatus?     @default(Aktif)
@@ -70,7 +71,7 @@ model ActivityPlanComment {
   user            User                @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   userId          Int                 
   rating          Int?                @default(0)
-  comment         String?             @db.LongText
+  comment         String?             
 }
 
 enum ActivityPlanStatus {
@@ -91,10 +92,10 @@ model Observation {
   id                    Int                 @id @default(autoincrement())
   user                  User                @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   userId                Int
-  name                  String              @db.LongText
-  description           String              @db.LongText
+  name                  String
+  description           String              
   date                  DateTime            @db.Date
-  image                 String              @db.LongText
+  image                 String              @db.Text
   active                Boolean?            @default(true)
   createAt              DateTime            @default(now())
   updatedAt             DateTime?           @updatedAt
@@ -108,7 +109,7 @@ model Report {
   user                  User                @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   userId                Int
   date                  DateTime            @db.Date
-  image                 String              @db.LongText
+  image                 String              
   active                Boolean?            @default(true)
   createAt              DateTime            @default(now())
   updatedAt             DateTime?           @updatedAt
@@ -130,7 +131,7 @@ model ObservationComment {
   user          User                @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   userId        Int                 
   rating        Int?                @default(0)
-  comment       String?             @db.LongText
+  comment       String?             
 }
 
 model ObservationLecturer {
@@ -145,7 +146,7 @@ model Memo {
   id            Int                 @id @default(autoincrement())
   user          User                @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   userId        Int
-  title         String              @db.LongText
+  title         String              
   active        Boolean?            @default(true)
   createAt      DateTime            @default(now())
   updatedAt     DateTime?           @updatedAt
@@ -168,14 +169,14 @@ model MemoComment {
   user          User                @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   userId        Int               
   rating        Int?                @default(0)
-  comment       String?             @db.LongText
+  comment       String?             
 }
 
 model SelfEvaluation {
   id                      Int                     @id @default(autoincrement())
   user                    User                    @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   userId                  Int                     
-  description             String                  @db.LongText
+  description             String                  
   createAt                DateTime                @default(now())
   updatedAt               DateTime?               @updatedAt
   active                  Boolean?                @default(true)
@@ -199,7 +200,7 @@ model SelfEvaluationComment {
   user              User                @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   userId            Int               
   rating            Int?                @default(0)
-  comment           String?             @db.LongText
+  comment           String?             
   createAt          DateTime            @default(now())
   updatedAt         DateTime?           @updatedAt
 }
