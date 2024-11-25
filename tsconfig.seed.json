@@ -1,12 +1,9 @@
 {
   "compilerOptions": {
-    "outDir": "./dist",
-    "rootDir": "./",
     "target": "es6",
     "module": "commonjs",
     "esModuleInterop": true,
     "strict": true
   },
-  "include": ["src/**/*", "prisma/**/*"],
-  "exclude": ["node_modules"]
+  "include": ["prisma/**/*"]
 }
