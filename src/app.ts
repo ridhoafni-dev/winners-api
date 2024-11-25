@@ -75,7 +75,7 @@ export default class App {
     this.app.get("/", async (req: Request, res: Response) => {
       return res.status(200).send("Hello World");
     });
-    this.app.use(express.static("public"));
+    // this.app.use(express.static("public"));
     this.app.use("/samples", sampleRouter.getRouter());
     this.app.use("/posts", postsRouter.getRouter());
     this.app.use("/api/auth", authRouter.getRouter());
