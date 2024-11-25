@@ -73,7 +73,7 @@ export default class App {
     const reportRouter = new ReportRouter();
 
     this.app.get("/", async (req: Request, res: Response) => {
-      return res.status(200).send("Hello World");
+      return res.status(200).send("Hello World!!");
     });
     // this.app.use(express.static("public"));
     this.app.use("/samples", sampleRouter.getRouter());
