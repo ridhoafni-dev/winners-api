@@ -124,25 +124,31 @@ export class SelfReflectionController {
         throw new Error("User not found");
       }
 
-      await prisma.$transaction(async (tx) => {
-        const createSelfReflection = await prisma.selfEvaluation.create({
-          data: {
-            userId: Number(userId),
-            description,
-          },
-        });
+      await prisma.$transaction(
+        async (tx) => {
+          const createSelfReflection = await tx.selfEvaluation.create({
+            data: {
+              userId: Number(userId),
+              description,
+            },
+          });
 
-        await tx.selfEvaluationLecturer.create({
-          data: {
-            userId: Number(lecturerId),
-            selfEvaluationId: Number(createSelfReflection.id),
-          },
-        });
+          await tx.selfEvaluationLecturer.create({
+            data: {
+              userId: Number(lecturerId),
+              selfEvaluationId: Number(createSelfReflection.id),
+            },
+          });
 
-        return res
-          .status(200)
-          .send({ status: true, data: createSelfReflection });
-      });
+          return res
+            .status(200)
+            .send({ status: true, data: createSelfReflection });
+        },
+        {
+          timeout: 10000,
+          maxWait: 5000,
+        }
+      );
     } catch (error) {
       next(error);
     }
