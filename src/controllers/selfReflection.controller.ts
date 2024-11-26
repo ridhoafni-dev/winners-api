@@ -125,32 +125,39 @@ export class SelfReflectionController {
         throw new Error("User not found");
       }
 
-      await prisma.$transaction(
-        async (tx) => {
-          const createSelfReflection = await tx.selfEvaluation.create({
+      await prisma.$transaction(async (tx) => {
+        await Promise.all([
+          tx.selfEvaluation.create({
             data: {
               userId: Number(userId),
               description,
             },
-          });
+          }),
+          tx.selfEvaluationLecturer.create({
+            data: {
+              userId: Number(lecturerId),
+              selfEvaluationId: Number(userId),
+            },
+          }),
+        ]);
+        // const createSelfReflection = await tx.selfEvaluation.create({
+        //   data: {
+        //     userId: Number(userId),
+        //     description,
+        //   },
+        // });
 
-          // await tx.selfEvaluationLecturer.create({
-          //   data: {
-          //     userId: Number(lecturerId),
-          //     selfEvaluationId: Number(createSelfReflection.id),
-          //   },
-          // });
+        // await tx.selfEvaluationLecturer.create({
+        //   data: {
+        //     userId: Number(lecturerId),
+        //     selfEvaluationId: Number(createSelfReflection.id),
+        //   },
+        // });
 
-          return res
-            .status(200)
-            .send({ status: true, data: createSelfReflection });
-        },
-        {
-          maxWait: 5000, // default: 2000
-          timeout: 10000, // default: 5000
-          isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-        }
-      );
+        return res
+          .status(200)
+          .send({ status: true, data: "Self Reflection created" });
+      });
     } catch (error) {
       next(error);
     }
