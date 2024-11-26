@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import prisma from "../prisma";
+import { Prisma } from "@prisma/client";
 
 export class SelfReflectionController {
   async getSelfReflections(req: Request, res: Response, next: NextFunction) {
@@ -145,8 +146,9 @@ export class SelfReflectionController {
             .send({ status: true, data: createSelfReflection });
         },
         {
-          timeout: 10000,
-          maxWait: 5000,
+          maxWait: 5000, // default: 2000
+          timeout: 10000, // default: 5000
+          isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
         }
       );
     } catch (error) {
