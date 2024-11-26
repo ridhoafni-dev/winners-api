@@ -134,12 +134,12 @@ export class SelfReflectionController {
             },
           });
 
-          await tx.selfEvaluationLecturer.create({
-            data: {
-              userId: Number(lecturerId),
-              selfEvaluationId: Number(createSelfReflection.id),
-            },
-          });
+          // await tx.selfEvaluationLecturer.create({
+          //   data: {
+          //     userId: Number(lecturerId),
+          //     selfEvaluationId: Number(createSelfReflection.id),
+          //   },
+          // });
 
           return res
             .status(200)
