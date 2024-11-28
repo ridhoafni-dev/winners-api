@@ -138,7 +138,7 @@ export class ObservationController {
       }
 
       await prisma.$transaction(async (tx) => {
-        const createObservation = await prisma.observation.create({
+        const createObservation = await tx.observation.create({
           data: {
             userId: Number(userId),
             name,
