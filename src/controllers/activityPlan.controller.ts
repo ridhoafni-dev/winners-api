@@ -121,7 +121,7 @@ export class ActivityPlanController {
       }
 
       await prisma.$transaction(async (tx) => {
-        const createActivityPlan = await prisma.activityPlan.create({
+        const createActivityPlan = await tx.activityPlan.create({
           data: {
             userId: Number(userId),
             name,
