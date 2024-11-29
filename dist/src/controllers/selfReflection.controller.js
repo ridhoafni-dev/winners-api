@@ -119,21 +119,35 @@ class SelfReflectionController {
                     throw new Error("User not found");
                 }
                 yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
-                    const createSelfReflection = yield prisma_1.default.selfEvaluation.create({
-                        data: {
-                            userId: Number(userId),
-                            description,
-                        },
-                    });
-                    yield tx.selfEvaluationLecturer.create({
-                        data: {
-                            userId: Number(lecturerId),
-                            selfEvaluationId: Number(createSelfReflection.id),
-                        },
-                    });
+                    yield Promise.all([
+                        tx.selfEvaluation.create({
+                            data: {
+                                userId: Number(userId),
+                                description,
+                            },
+                        }),
+                        tx.selfEvaluationLecturer.create({
+                            data: {
+                                userId: Number(lecturerId),
+                                selfEvaluationId: Number(userId),
+                            },
+                        }),
+                    ]);
+                    // const createSelfReflection = await tx.selfEvaluation.create({
+                    //   data: {
+                    //     userId: Number(userId),
+                    //     description,
+                    //   },
+                    // });
+                    // await tx.selfEvaluationLecturer.create({
+                    //   data: {
+                    //     userId: Number(lecturerId),
+                    //     selfEvaluationId: Number(createSelfReflection.id),
+                    //   },
+                    // });
                     return res
                         .status(200)
-                        .send({ status: true, data: createSelfReflection });
+                        .send({ status: true, data: "Self Reflection created" });
                 }));
             }
             catch (error) {

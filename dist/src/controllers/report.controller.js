@@ -140,8 +140,8 @@ class ReportController {
         });
     }
     updateReport(req, res, next) {
-        var _a, _b, _c;
         return __awaiter(this, void 0, void 0, function* () {
+            var _a, _b, _c;
             try {
                 const { userId, date, active } = req.body;
                 const { id } = req.params;

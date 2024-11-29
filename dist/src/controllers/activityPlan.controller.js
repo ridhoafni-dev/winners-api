@@ -116,7 +116,7 @@ class ActivityPlanController {
                     throw new Error("User not found");
                 }
                 yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
-                    const createActivityPlan = yield prisma_1.default.activityPlan.create({
+                    const createActivityPlan = yield tx.activityPlan.create({
                         data: {
                             userId: Number(userId),
                             name,

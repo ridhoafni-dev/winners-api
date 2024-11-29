@@ -111,8 +111,8 @@ class ObservationController {
         });
     }
     createObservation(req, res, next) {
-        var _a;
         return __awaiter(this, void 0, void 0, function* () {
+            var _a;
             try {
                 const { userId, name, description, date, lecturerId } = req.body;
                 const checkUser = yield prisma_1.default.user.findUnique({
@@ -125,14 +125,14 @@ class ObservationController {
                     throw new Error("User not found");
                 }
                 yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
-                    var _b;
-                    const createObservation = yield prisma_1.default.observation.create({
+                    var _a;
+                    const createObservation = yield tx.observation.create({
                         data: {
                             userId: Number(userId),
                             name,
                             description,
                             date: new Date(date),
-                            image: `image/${(_b = req.file) === null || _b === void 0 ? void 0 : _b.filename}`,
+                            image: `image/${(_a = req.file) === null || _a === void 0 ? void 0 : _a.filename}`,
                         },
                     });
                     yield tx.observationLecturer.create({
@@ -150,8 +150,8 @@ class ObservationController {
         });
     }
     updateObservation(req, res, next) {
-        var _a, _b, _c;
         return __awaiter(this, void 0, void 0, function* () {
+            var _a, _b, _c;
             try {
                 const { userId, name, description, date, active } = req.body;
                 const { id } = req.params;
