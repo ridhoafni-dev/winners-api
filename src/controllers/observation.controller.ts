@@ -186,8 +186,9 @@ export class ObservationController {
 
   async updateObservation(req: Request, res: Response, next: NextFunction) {
     try {
-      const { userId, name, description, date, active } = req.body;
+      // const { userId, name, description, date, active } = req.body;
       const { id } = req.params;
+      const userId = req.dataUser?.id;
 
       const checkUser = await prisma.user.findUnique({
         where: {
