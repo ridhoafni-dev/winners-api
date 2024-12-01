@@ -85,7 +85,7 @@ export async function uploadToSupabase(file: Express.Multer.File) {
   }
 
   const fileName = `IMG${Date.now()}${path.extname(file.originalname)}`;
-  const filePath = `public/${fileName}`;
+  const filePath = `observations/${fileName}`;
 
   console.log("Upload details::", {
     fileName,
@@ -96,7 +96,7 @@ export async function uploadToSupabase(file: Express.Multer.File) {
 
   try {
     const { data, error } = await supabase.storage
-      .from("observations")
+      .from("assets")
       .upload(filePath, file.buffer, {
         contentType: file.mimetype,
         upsert: true,
@@ -112,7 +112,7 @@ export async function uploadToSupabase(file: Express.Multer.File) {
 
     const {
       data: { publicUrl },
-    } = supabase.storage.from("observations").getPublicUrl(filePath);
+    } = supabase.storage.from("assets").getPublicUrl(filePath);
 
     console.log("return data upload::", publicUrl);
     return publicUrl;
@@ -134,7 +134,7 @@ export async function uploadToSupabaseDoc(file: Express.Multer.File) {
   }
 
   const fileName = `DOC${Date.now()}${path.extname(file.originalname)}`;
-  const filePath = `public/${fileName}`;
+  const filePath = `reports/${fileName}`;
 
   console.log("Upload details::", {
     fileName,
@@ -145,7 +145,7 @@ export async function uploadToSupabaseDoc(file: Express.Multer.File) {
 
   try {
     const { data, error } = await supabase.storage
-      .from("reports")
+      .from("assets")
       .upload(filePath, file.buffer, {
         contentType: file.mimetype,
         upsert: true,
@@ -161,7 +161,7 @@ export async function uploadToSupabaseDoc(file: Express.Multer.File) {
 
     const {
       data: { publicUrl },
-    } = supabase.storage.from("reports").getPublicUrl(filePath);
+    } = supabase.storage.from("assets").getPublicUrl(filePath);
 
     console.log("return data upload::", publicUrl);
     return publicUrl;
@@ -183,8 +183,8 @@ export async function deleteFromSupabaseDoc(docUrl: string) {
     console.log("URL parts delete::", filePath);
 
     const { data, error } = await supabase.storage
-      .from("reports")
-      .remove([`public/${filePath}`]);
+      .from("assets")
+      .remove([`reports/${filePath}`]);
 
     if (error) {
       console.error("Delete error::", error);
@@ -228,8 +228,8 @@ export async function deleteFromSupabase(imageUrl: string) {
     console.log("URL parts delete::", filePath);
 
     const { data, error } = await supabase.storage
-      .from("observations")
-      .remove([`public/${filePath}`]);
+      .from("assets")
+      .remove([`observations/${filePath}`]);
 
     if (error) {
       console.error("Delete error::", error);
