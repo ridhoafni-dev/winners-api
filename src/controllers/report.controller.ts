@@ -150,13 +150,9 @@ export class ReportController {
 
   async updateReport(req: Request, res: Response, next: NextFunction) {
     try {
-      const { date, active } = req.body;
       const { id } = req.params;
 
       const userId = req.dataUser?.id;
-
-      console.log("meme::", id);
-      console.log("meme::userId::", userId);
 
       const checkUser = await prisma.user.findUnique({
         where: {

@@ -207,6 +207,8 @@ export class ObservationController {
         throw new Error("Observation not found");
       }
 
+      await deleteFromSupabase(checkObservation.image);
+
       let newImage = null;
 
       if (req.file?.filename) {
@@ -231,21 +233,25 @@ export class ObservationController {
         // );
       }
 
-      const updateObservation = await prisma.observation.update({
+      const updateObservation = await prisma.observation.delete({
         where: { id: Number(id) },
-        data: {
-          // ...(req.file?.filename
-          //   ? { image: `image/${req.file?.filename}` }
-          //   : {}),
-          ...(req.file?.filename ? { image: newImage || "" } : {}),
-          userId: Number(userId),
-          name,
-          description,
-          date: new Date(date),
-          updatedAt: new Date().toISOString(),
-          active: JSON.parse(active),
-        },
       });
+
+      // const updateObservation = await prisma.observation.update({
+      //   where: { id: Number(id) },
+      //   data: {
+      //     // ...(req.file?.filename
+      //     //   ? { image: `image/${req.file?.filename}` }
+      //     //   : {}),
+      //     ...(req.file?.filename ? { image: newImage || "" } : {}),
+      //     userId: Number(userId),
+      //     name,
+      //     description,
+      //     date: new Date(date),
+      //     updatedAt: new Date().toISOString(),
+      //     active: JSON.parse(active),
+      //   },
+      // });
 
       return res.status(200).send({
         success: true,

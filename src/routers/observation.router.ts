@@ -35,7 +35,7 @@ export class ObservationRouter {
     );
     this.router.patch(
       "/:id",
-      handleUpload,
+      // handleUpload,
       verifyToken,
       // uploader("IMG", "/image").single("image"),
       this.observationController.updateObservation
