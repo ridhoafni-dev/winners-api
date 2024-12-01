@@ -6,6 +6,7 @@ import {
 import { ObservationController } from "../controllers/observation.controller";
 import { uploader } from "../middleware/uploader";
 import { verifyToken } from "../middleware/verifyToken";
+import { handleUpload } from "../utils/supabaseStorage";
 
 export class ObservationRouter {
   private router: Router;
@@ -20,9 +21,10 @@ export class ObservationRouter {
   private init(): void {
     this.router.post(
       "/",
-      uploader("IMG", "/image").single("image"),
-      observationValidation,
+      //uploader("IMG", "/image").single("image"),
       verifyToken,
+      handleUpload,
+      observationValidation,
       this.observationController.createObservation
     );
     this.router.post(
@@ -33,8 +35,9 @@ export class ObservationRouter {
     );
     this.router.patch(
       "/:id",
+      handleUpload,
       verifyToken,
-      uploader("IMG", "/image").single("image"),
+      // uploader("IMG", "/image").single("image"),
       this.observationController.updateObservation
     );
     this.router.get(

@@ -1,6 +1,11 @@
 import { NextFunction, Request, Response } from "express";
 import prisma from "../prisma";
 import fs from "fs";
+import {
+  deleteFromSupabase,
+  replaceImageInSupabase,
+  uploadToSupabase,
+} from "../utils/supabaseStorage";
 
 export class ObservationController {
   async getObservations(req: Request, res: Response, next: NextFunction) {
@@ -15,12 +20,13 @@ export class ObservationController {
         },
       });
 
-      dataObservations = dataObservations.map((data) => {
-        return {
-          ...data,
-          image: `${req.get("host")}/${data.image}`,
-        };
-      });
+      // dataObservations = dataObservations.map((data) => {
+      //   return {
+      //     ...data,
+      //     image: `${req.get("host")}/${data.image}`,
+      //   };
+      // });
+
       return res.status(200).send({ status: true, data: dataObservations });
     } catch (error) {
       next(error);
@@ -56,12 +62,12 @@ export class ObservationController {
         },
       });
 
-      dataObservations = dataObservations.map((data) => {
-        return {
-          ...data,
-          image: `${req.get("host")}/${data.image}`,
-        };
-      });
+      // dataObservations = dataObservations.map((data) => {
+      //   return {
+      //     ...data,
+      //     image: `${req.get("host")}/${data.image}`,
+      //   };
+      // });
 
       return res.status(200).send({ status: true, data: dataObservations });
     } catch (error) {
@@ -106,7 +112,7 @@ export class ObservationController {
       let mapped = dataObservations.map((data) => {
         return {
           ...data,
-          image: `${req.get("host")}/${data.image}`,
+          //image: `${req.get("host")}/${data.image}`,
           createAt: data.createAt.toISOString(),
         };
       });
@@ -123,44 +129,60 @@ export class ObservationController {
     }
   }
 
+  // observation.controller.ts
   async createObservation(req: Request, res: Response, next: NextFunction) {
     try {
       const { userId, name, description, date, lecturerId } = req.body;
-      const checkUser = await prisma.user.findUnique({
-        where: {
-          id: Number(userId),
-        },
-      });
+
+      // Pre-transaction checks and file upload
+      const [checkUser, imageUrl] = await Promise.all([
+        prisma.user.findUnique({
+          where: { id: Number(userId) },
+        }),
+        req.file ? uploadToSupabase(req.file) : Promise.resolve(null),
+      ]);
 
       if (!checkUser) {
-        fs.unlink(`./public/image/${req.file?.filename}`, () => {});
         throw new Error("User not found");
       }
 
-      await prisma.$transaction(async (tx) => {
-        const createObservation = await tx.observation.create({
-          data: {
-            userId: Number(userId),
-            name,
-            description,
-            date: new Date(date),
-            image: `image/${req.file?.filename}`,
-          },
-        });
+      // Database transaction with increased timeout
+      const result = await prisma.$transaction(
+        async (tx) => {
+          const observation = await tx.observation.create({
+            data: {
+              userId: Number(userId),
+              name,
+              description,
+              date: new Date(date),
+              image: imageUrl || "",
+            },
+          });
 
-        await tx.observationLecturer.create({
-          data: {
-            userId: Number(lecturerId),
-            observationId: Number(createObservation.id),
-          },
-        });
+          await tx.observationLecturer.create({
+            data: {
+              userId: Number(lecturerId),
+              observationId: observation.id,
+            },
+          });
 
-        return res.status(200).send({ status: true, data: createObservation });
+          return observation;
+        },
+        {
+          maxWait: 5000, // Max time to wait for transaction
+          timeout: 15000, // Increased transaction timeout to 15s
+        }
+      );
+
+      return res.status(200).json({
+        status: true,
+        data: result,
       });
     } catch (error) {
+      console.error("Transaction error:", error);
       next(error);
     }
-  }
+  } // observation.controller.ts
 
   async updateObservation(req: Request, res: Response, next: NextFunction) {
     try {
@@ -185,24 +207,37 @@ export class ObservationController {
         throw new Error("Observation not found");
       }
 
+      let newImage = null;
+
       if (req.file?.filename) {
-        fs.unlink(
-          "./public/image/" + checkObservation.image.replace("image/", ""),
-          (err) => {
-            if (err) {
-              console.log(err);
-              throw new Error(err.message);
-            }
-          }
-        );
+        try {
+          newImage = await replaceImageInSupabase(
+            checkObservation.image,
+            req.file
+          );
+        } catch (error) {
+          console.error("Error deleting old image:", error);
+          throw new Error("Failed to delete old image");
+        }
+
+        // fs.unlink(
+        //   "./public/image/" + checkObservation.image.replace("image/", ""),
+        //   (err) => {
+        //     if (err) {
+        //       console.log(err);
+        //       throw new Error(err.message);
+        //     }
+        //   }
+        // );
       }
 
       const updateObservation = await prisma.observation.update({
         where: { id: Number(id) },
         data: {
-          ...(req.file?.filename
-            ? { image: `image/${req.file?.filename}` }
-            : {}),
+          // ...(req.file?.filename
+          //   ? { image: `image/${req.file?.filename}` }
+          //   : {}),
+          ...(req.file?.filename ? { image: newImage || "" } : {}),
           userId: Number(userId),
           name,
           description,

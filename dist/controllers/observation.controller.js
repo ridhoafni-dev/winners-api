@@ -14,7 +14,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ObservationController = void 0;
 const prisma_1 = __importDefault(require("../prisma"));
-const fs_1 = __importDefault(require("fs"));
+const supabaseStorage_1 = require("../utils/supabaseStorage");
 class ObservationController {
     getObservations(req, res, next) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -28,9 +28,12 @@ class ObservationController {
                         observationComments: true,
                     },
                 });
-                dataObservations = dataObservations.map((data) => {
-                    return Object.assign(Object.assign({}, data), { image: `${req.get("host")}/${data.image}` });
-                });
+                // dataObservations = dataObservations.map((data) => {
+                //   return {
+                //     ...data,
+                //     image: `${req.get("host")}/${data.image}`,
+                //   };
+                // });
                 return res.status(200).send({ status: true, data: dataObservations });
             }
             catch (error) {
@@ -60,9 +63,12 @@ class ObservationController {
                         observationComments: true,
                     },
                 });
-                dataObservations = dataObservations.map((data) => {
-                    return Object.assign(Object.assign({}, data), { image: `${req.get("host")}/${data.image}` });
-                });
+                // dataObservations = dataObservations.map((data) => {
+                //   return {
+                //     ...data,
+                //     image: `${req.get("host")}/${data.image}`,
+                //   };
+                // });
                 return res.status(200).send({ status: true, data: dataObservations });
             }
             catch (error) {
@@ -95,7 +101,9 @@ class ObservationController {
                     },
                 });
                 let mapped = dataObservations.map((data) => {
-                    return Object.assign(Object.assign({}, data), { image: `${req.get("host")}/${data.image}`, createAt: data.createAt.toISOString() });
+                    return Object.assign(Object.assign({}, data), { 
+                        //image: `${req.get("host")}/${data.image}`,
+                        createAt: data.createAt.toISOString() });
                 });
                 if (isLecturer) {
                     mapped = mapped.filter((data) => {
@@ -110,48 +118,57 @@ class ObservationController {
             }
         });
     }
+    // observation.controller.ts
     createObservation(req, res, next) {
-        var _a;
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const { userId, name, description, date, lecturerId } = req.body;
-                const checkUser = yield prisma_1.default.user.findUnique({
-                    where: {
-                        id: Number(userId),
-                    },
-                });
+                // Pre-transaction checks and file upload
+                const [checkUser, imageUrl] = yield Promise.all([
+                    prisma_1.default.user.findUnique({
+                        where: { id: Number(userId) },
+                    }),
+                    req.file ? (0, supabaseStorage_1.uploadToSupabase)(req.file) : Promise.resolve(null),
+                ]);
                 if (!checkUser) {
-                    fs_1.default.unlink(`./public/image/${(_a = req.file) === null || _a === void 0 ? void 0 : _a.filename}`, () => { });
                     throw new Error("User not found");
                 }
-                yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
-                    var _b;
-                    const createObservation = yield prisma_1.default.observation.create({
+                // Database transaction with increased timeout
+                const result = yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
+                    const observation = yield tx.observation.create({
                         data: {
                             userId: Number(userId),
                             name,
                             description,
                             date: new Date(date),
-                            image: `image/${(_b = req.file) === null || _b === void 0 ? void 0 : _b.filename}`,
+                            image: imageUrl || "",
                         },
                     });
                     yield tx.observationLecturer.create({
                         data: {
                             userId: Number(lecturerId),
-                            observationId: Number(createObservation.id),
+                            observationId: observation.id,
                         },
                     });
-                    return res.status(200).send({ status: true, data: createObservation });
-                }));
+                    return observation;
+                }), {
+                    maxWait: 5000, // Max time to wait for transaction
+                    timeout: 15000, // Increased transaction timeout to 15s
+                });
+                return res.status(200).json({
+                    status: true,
+                    data: result,
+                });
             }
             catch (error) {
+                console.error("Transaction error:", error);
                 next(error);
             }
         });
-    }
+    } // observation.controller.ts
     updateObservation(req, res, next) {
-        var _a, _b, _c;
         return __awaiter(this, void 0, void 0, function* () {
+            var _a, _b;
             try {
                 const { userId, name, description, date, active } = req.body;
                 const { id } = req.params;
@@ -169,19 +186,28 @@ class ObservationController {
                 if (!checkObservation) {
                     throw new Error("Observation not found");
                 }
+                let newImage = null;
                 if ((_a = req.file) === null || _a === void 0 ? void 0 : _a.filename) {
-                    fs_1.default.unlink("./public/image/" + checkObservation.image.replace("image/", ""), (err) => {
-                        if (err) {
-                            console.log(err);
-                            throw new Error(err.message);
-                        }
-                    });
+                    try {
+                        newImage = yield (0, supabaseStorage_1.replaceImageInSupabase)(checkObservation.image, req.file);
+                    }
+                    catch (error) {
+                        console.error("Error deleting old image:", error);
+                        throw new Error("Failed to delete old image");
+                    }
+                    // fs.unlink(
+                    //   "./public/image/" + checkObservation.image.replace("image/", ""),
+                    //   (err) => {
+                    //     if (err) {
+                    //       console.log(err);
+                    //       throw new Error(err.message);
+                    //     }
+                    //   }
+                    // );
                 }
                 const updateObservation = yield prisma_1.default.observation.update({
                     where: { id: Number(id) },
-                    data: Object.assign(Object.assign({}, (((_b = req.file) === null || _b === void 0 ? void 0 : _b.filename)
-                        ? { image: `image/${(_c = req.file) === null || _c === void 0 ? void 0 : _c.filename}` }
-                        : {})), { userId: Number(userId), name,
+                    data: Object.assign(Object.assign({}, (((_b = req.file) === null || _b === void 0 ? void 0 : _b.filename) ? { image: newImage || "" } : {})), { userId: Number(userId), name,
                         description, date: new Date(date), updatedAt: new Date().toISOString(), active: JSON.parse(active) }),
                 });
                 return res.status(200).send({

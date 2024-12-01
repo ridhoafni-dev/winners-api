@@ -120,7 +120,7 @@ export class ActivityPlanController {
         throw new Error("User not found");
       }
 
-      await prisma.$transaction(async (tx) => {
+      const result = await prisma.$transaction(async (tx) => {
         const createActivityPlan = await tx.activityPlan.create({
           data: {
             userId: Number(userId),
@@ -138,8 +138,10 @@ export class ActivityPlanController {
           },
         });
 
-        return res.status(200).send({ status: true, data: createActivityPlan });
-      });
+        return createActivityPlan;
+      }, {});
+
+      return res.status(200).send({ status: true, data: result });
     } catch (error) {
       next(error);
     }

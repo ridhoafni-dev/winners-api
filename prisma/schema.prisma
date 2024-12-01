@@ -33,7 +33,7 @@ model User {
   selfEvaluationComments      SelfEvaluationComment[]
   selfEvaluationLecturer      SelfEvaluationLecturer[]
   reportLecturer              ReportLecturer[]
-  createAt                    DateTime                    @default(now())
+  createAt                    DateTime                    @default(dbgenerated("timezone('Asia/Jakarta', now())")) @db.Timestamp(6)
   updatedAt                   DateTime?                   @updatedAt
 }
 
@@ -58,7 +58,7 @@ model ActivityPlan {
   endDate               DateTime                @db.Date
   status                ActivityPlanStatus?     @default(Aktif)
   active                Boolean?                @default(true)
-  createAt              DateTime                @default(now())
+  createAt              DateTime                @default(dbgenerated("timezone('Asia/Jakarta', now())")) @db.Timestamp(6)
   updatedAt             DateTime?               @updatedAt
   activityPlanComment   ActivityPlanComment?  
   activityPlanLecturer  ActivityPlanLecturer?  
@@ -97,7 +97,7 @@ model Observation {
   date                  DateTime            @db.Date
   image                 String              @db.Text
   active                Boolean?            @default(true)
-  createAt              DateTime            @default(now())
+  createAt              DateTime            @default(dbgenerated("timezone('Asia/Jakarta', now())")) @db.Timestamp(6)
   updatedAt             DateTime?           @updatedAt
   observationComments   ObservationComment?
   observationLecturers  ObservationLecturer?
@@ -111,7 +111,7 @@ model Report {
   date                  DateTime            @db.Date
   image                 String              
   active                Boolean?            @default(true)
-  createAt              DateTime            @default(now())
+  createAt              DateTime            @default(dbgenerated("timezone('Asia/Jakarta', now())")) @db.Timestamp(6)
   updatedAt             DateTime?           @updatedAt
   reportLecturer        ReportLecturer?
 }
@@ -148,7 +148,7 @@ model Memo {
   userId        Int
   title         String              
   active        Boolean?            @default(true)
-  createAt      DateTime            @default(now())
+  createAt      DateTime            @default(dbgenerated("timezone('Asia/Jakarta', now())")) @db.Timestamp(6)
   updatedAt     DateTime?           @updatedAt
   memoComment   MemoComment?
   memoLecturer  MemoLecturer?
@@ -177,7 +177,7 @@ model SelfEvaluation {
   user                    User                    @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   userId                  Int                     
   description             String                  
-  createAt                DateTime                @default(now())
+  createAt                DateTime                @default(dbgenerated("timezone('Asia/Jakarta', now())")) @db.Timestamp(6)
   updatedAt               DateTime?               @updatedAt
   active                  Boolean?                @default(true)
   selfEvaluation          SelfEvaluationComment?
@@ -201,7 +201,7 @@ model SelfEvaluationComment {
   userId            Int               
   rating            Int?                @default(0)
   comment           String?             
-  createAt          DateTime            @default(now())
+  createAt          DateTime            @default(dbgenerated("timezone('Asia/Jakarta', now())")) @db.Timestamp(6)
   updatedAt         DateTime?           @updatedAt
 }
 

@@ -158,19 +158,18 @@ exports.observationValidation = [
 exports.reportValidation = [
     (0, express_validator_1.body)("userId").notEmpty().withMessage("UserId required"),
     (0, express_validator_1.body)("userId").optional().isNumeric().withMessage("UserId mush be number"),
-    (0, express_validator_1.body)("lecturerId").notEmpty().withMessage("Lecturer required"),
-    (0, express_validator_1.body)("lecturerId")
-        .optional()
-        .isNumeric()
-        .withMessage("Lecturer mush be number"),
-    (0, express_validator_1.body)("date").notEmpty().withMessage("Date required"),
+    // body("lecturerId").notEmpty().withMessage("Lecturer required"),
+    // body("lecturerId")
+    //   .optional()
+    //   .isNumeric()
+    //   .withMessage("Lecturer mush be number"),
+    // body("date").notEmpty().withMessage("Date required"),
     (req, res, next) => {
-        var _a;
         const errorValidator = (0, express_validator_1.validationResult)(req); // untuk menampung jika ada error dari middleware validator
         if (!errorValidator.isEmpty()) {
             // Jika errorValidator tidak kosong maka akan dikirimkan response sebagai error
-            fs_1.default.unlink(`./public/document/${(_a = req.file) === null || _a === void 0 ? void 0 : _a.filename}`, () => { });
-            return res.status(400).send({ error: errorValidator.array() });
+            // fs.unlink(`./public/document/${req.file?.filename}`, () => {});
+            // return res.status(400).send({ error: errorValidator.array() });
         }
         next(); // jika error validator kosong maka lanjut ke controller register
     },

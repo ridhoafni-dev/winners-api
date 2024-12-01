@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ObservationController = void 0;
 const prisma_1 = __importDefault(require("../prisma"));
 const fs_1 = __importDefault(require("fs"));
+const supabaseStorage_1 = require("../utils/supabaseStorage");
 class ObservationController {
     getObservations(req, res, next) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -110,45 +111,55 @@ class ObservationController {
             }
         });
     }
+    // observation.controller.ts
     createObservation(req, res, next) {
         return __awaiter(this, void 0, void 0, function* () {
-            var _a;
             try {
                 const { userId, name, description, date, lecturerId } = req.body;
-                const checkUser = yield prisma_1.default.user.findUnique({
-                    where: {
-                        id: Number(userId),
-                    },
-                });
+                // Pre-transaction checks and file upload
+                const [checkUser, imageUrl] = yield Promise.all([
+                    prisma_1.default.user.findUnique({
+                        where: { id: Number(userId) },
+                    }),
+                    req.file ? (0, supabaseStorage_1.uploadToSupabase)(req.file) : Promise.resolve(null),
+                ]);
+                console.log("IMAGE_URL::", imageUrl);
                 if (!checkUser) {
-                    fs_1.default.unlink(`./public/image/${(_a = req.file) === null || _a === void 0 ? void 0 : _a.filename}`, () => { });
                     throw new Error("User not found");
                 }
-                yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
-                    var _a;
-                    const createObservation = yield tx.observation.create({
+                // Database transaction with increased timeout
+                const result = yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
+                    const observation = yield tx.observation.create({
                         data: {
                             userId: Number(userId),
                             name,
                             description,
                             date: new Date(date),
-                            image: `image/${(_a = req.file) === null || _a === void 0 ? void 0 : _a.filename}`,
+                            image: imageUrl || "",
                         },
                     });
-                    yield tx.observationLecturer.create({
-                        data: {
-                            userId: Number(lecturerId),
-                            observationId: Number(createObservation.id),
-                        },
-                    });
-                    return res.status(200).send({ status: true, data: createObservation });
-                }));
+                    // await tx.observationLecturer.create({
+                    //   data: {
+                    //     userId: Number(lecturerId),
+                    //     observationId: observation.id,
+                    //   },
+                    // });
+                    return observation;
+                }), {
+                    maxWait: 5000, // Max time to wait for transaction
+                    timeout: 15000, // Increased transaction timeout to 15s
+                });
+                return res.status(201).json({
+                    status: true,
+                    data: result,
+                });
             }
             catch (error) {
+                console.error("Transaction error:", error);
                 next(error);
             }
         });
-    }
+    } // observation.controller.ts
     updateObservation(req, res, next) {
         return __awaiter(this, void 0, void 0, function* () {
             var _a, _b, _c;

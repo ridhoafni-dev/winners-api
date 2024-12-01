@@ -162,19 +162,19 @@ export const observationValidation = [
 export const reportValidation = [
   body("userId").notEmpty().withMessage("UserId required"),
   body("userId").optional().isNumeric().withMessage("UserId mush be number"),
-  body("lecturerId").notEmpty().withMessage("Lecturer required"),
-  body("lecturerId")
-    .optional()
-    .isNumeric()
-    .withMessage("Lecturer mush be number"),
-  body("date").notEmpty().withMessage("Date required"),
+  // body("lecturerId").notEmpty().withMessage("Lecturer required"),
+  // body("lecturerId")
+  //   .optional()
+  //   .isNumeric()
+  //   .withMessage("Lecturer mush be number"),
+  // body("date").notEmpty().withMessage("Date required"),
 
   (req: Request, res: Response, next: NextFunction) => {
     const errorValidator = validationResult(req); // untuk menampung jika ada error dari middleware validator
     if (!errorValidator.isEmpty()) {
       // Jika errorValidator tidak kosong maka akan dikirimkan response sebagai error
-      fs.unlink(`./public/document/${req.file?.filename}`, () => {});
-      return res.status(400).send({ error: errorValidator.array() });
+      // fs.unlink(`./public/document/${req.file?.filename}`, () => {});
+      // return res.status(400).send({ error: errorValidator.array() });
     }
     next(); // jika error validator kosong maka lanjut ke controller register
   },
