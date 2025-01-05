@@ -145,11 +145,8 @@ class ReportController {
         return __awaiter(this, void 0, void 0, function* () {
             var _a, _b;
             try {
-                const { date, active } = req.body;
                 const { id } = req.params;
                 const userId = (_a = req.dataUser) === null || _a === void 0 ? void 0 : _a.id;
-                console.log("meme::", id);
-                console.log("meme::userId::", userId);
                 const checkUser = yield prisma_1.default.user.findUnique({
                     where: {
                         id: Number(userId),

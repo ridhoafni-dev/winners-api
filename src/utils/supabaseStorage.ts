@@ -15,8 +15,13 @@ export const upload = multer({
     fileSize: 5 * 1024 * 1024, // 5MB limit
   },
   fileFilter(_req, file, cb) {
-    file.filename = `IMG${Date.now()}${path.extname(file.originalname)}`;
-    cb(null, true);
+    const allowedTypes = ["image/jpeg", "image/png", "image/gif"];
+    if (allowedTypes.includes(file.mimetype)) {
+      file.filename = `IMG${Date.now()}${path.extname(file.originalname)}`;
+      cb(null, true);
+    } else {
+      cb(new Error("Invalid file type"));
+    }
   },
 }).single("image");
 
@@ -49,6 +54,23 @@ export const handleUpload = (req: any, res: any, next: any) => {
     });
 
     next();
+  });
+};
+
+export const handleUpdateUpload = (req: any, res: any, next: any) => {
+  upload(req, res, (err: any) => {
+    if (err) {
+      return res.status(400).json({ error: err.message });
+    }
+
+    // console.log("File details::", {
+    //   size: req.file.size,
+    //   mimetype: req.file.mimetype,
+    //   buffer: req.file.buffer?.length || 0,
+    //   fileName: req.file.originalname,
+    // });
+
+    // next();
   });
 };
 

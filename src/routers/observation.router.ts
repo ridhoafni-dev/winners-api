@@ -6,7 +6,12 @@ import {
 import { ObservationController } from "../controllers/observation.controller";
 import { uploader } from "../middleware/uploader";
 import { verifyToken } from "../middleware/verifyToken";
-import { handleUpload } from "../utils/supabaseStorage";
+import {
+  handleUpdateUpload,
+  handleUpload,
+  upload,
+} from "../utils/supabaseStorage";
+import { checkContentType } from "../middleware/checkContentType";
 
 export class ObservationRouter {
   private router: Router;
@@ -36,9 +41,17 @@ export class ObservationRouter {
     this.router.patch(
       "/:id",
       // handleUpload,
+      upload,
       verifyToken,
       // uploader("IMG", "/image").single("image"),
       this.observationController.updateObservation
+    );
+    this.router.delete(
+      "/:id",
+      // handleUpload,
+      verifyToken,
+      // uploader("IMG", "/image").single("image"),
+      this.observationController.deleteObservation
     );
     this.router.get(
       "/",

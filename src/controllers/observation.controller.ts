@@ -184,7 +184,7 @@ export class ObservationController {
     }
   } // observation.controller.ts
 
-  async updateObservation(req: Request, res: Response, next: NextFunction) {
+  async deleteObservation(req: Request, res: Response, next: NextFunction) {
     try {
       // const { userId, name, description, date, active } = req.body;
       const { id } = req.params;
@@ -210,6 +210,48 @@ export class ObservationController {
 
       await deleteFromSupabase(checkObservation.image);
 
+      const updateObservation = await prisma.observation.delete({
+        where: { id: Number(id) },
+      });
+
+      return res.status(200).send({
+        success: true,
+        data: {
+          data: updateObservation,
+        },
+      });
+      7848999999;
+    } catch (error: any) {
+      next(error);
+    }
+  }
+
+  async updateObservation(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { name, description, date, active } = req.body;
+      const { id } = req.params;
+      const userId = req.dataUser?.id;
+
+      const checkUser = await prisma.user.findUnique({
+        where: {
+          id: Number(userId),
+        },
+      });
+
+      if (!checkUser) {
+        throw new Error("User not found");
+      }
+
+      const checkObservation = await prisma.observation.findUnique({
+        where: { id: Number(id) },
+      });
+
+      if (!checkObservation) {
+        throw new Error("Observation not found");
+      }
+
+      // await deleteFromSupabase(checkObservation.image);
+
       let newImage = null;
 
       if (req.file?.filename) {
@@ -234,25 +276,21 @@ export class ObservationController {
         // );
       }
 
-      const updateObservation = await prisma.observation.delete({
+      const updateObservation = await prisma.observation.update({
         where: { id: Number(id) },
+        data: {
+          // ...(req.file?.filename
+          //   ? { image: `image/${req.file?.filename}` }
+          //   : {}),
+          ...(req.file?.filename ? { image: newImage || "" } : {}),
+          userId: Number(userId),
+          name,
+          description,
+          date: new Date(date),
+          updatedAt: new Date().toISOString(),
+          active: JSON.parse(active),
+        },
       });
-
-      // const updateObservation = await prisma.observation.update({
-      //   where: { id: Number(id) },
-      //   data: {
-      //     // ...(req.file?.filename
-      //     //   ? { image: `image/${req.file?.filename}` }
-      //     //   : {}),
-      //     ...(req.file?.filename ? { image: newImage || "" } : {}),
-      //     userId: Number(userId),
-      //     name,
-      //     description,
-      //     date: new Date(date),
-      //     updatedAt: new Date().toISOString(),
-      //     active: JSON.parse(active),
-      //   },
-      // });
 
       return res.status(200).send({
         success: true,

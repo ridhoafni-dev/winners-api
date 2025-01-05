@@ -139,7 +139,7 @@ export class ActivityPlanController {
         });
 
         return createActivityPlan;
-      }, {});
+      });
 
       return res.status(200).send({ status: true, data: result });
     } catch (error) {

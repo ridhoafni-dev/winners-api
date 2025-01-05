@@ -166,12 +166,13 @@ class ObservationController {
             }
         });
     } // observation.controller.ts
-    updateObservation(req, res, next) {
+    deleteObservation(req, res, next) {
         return __awaiter(this, void 0, void 0, function* () {
-            var _a, _b;
+            var _a;
             try {
-                const { userId, name, description, date, active } = req.body;
+                // const { userId, name, description, date, active } = req.body;
                 const { id } = req.params;
+                const userId = (_a = req.dataUser) === null || _a === void 0 ? void 0 : _a.id;
                 const checkUser = yield prisma_1.default.user.findUnique({
                     where: {
                         id: Number(userId),
@@ -186,8 +187,47 @@ class ObservationController {
                 if (!checkObservation) {
                     throw new Error("Observation not found");
                 }
+                yield (0, supabaseStorage_1.deleteFromSupabase)(checkObservation.image);
+                const updateObservation = yield prisma_1.default.observation.delete({
+                    where: { id: Number(id) },
+                });
+                return res.status(200).send({
+                    success: true,
+                    data: {
+                        data: updateObservation,
+                    },
+                });
+                7848999999;
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
+    updateObservation(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a, _b, _c;
+            try {
+                const { name, description, date, active } = req.body;
+                const { id } = req.params;
+                const userId = (_a = req.dataUser) === null || _a === void 0 ? void 0 : _a.id;
+                const checkUser = yield prisma_1.default.user.findUnique({
+                    where: {
+                        id: Number(userId),
+                    },
+                });
+                if (!checkUser) {
+                    throw new Error("User not found");
+                }
+                const checkObservation = yield prisma_1.default.observation.findUnique({
+                    where: { id: Number(id) },
+                });
+                if (!checkObservation) {
+                    throw new Error("Observation not found");
+                }
+                // await deleteFromSupabase(checkObservation.image);
                 let newImage = null;
-                if ((_a = req.file) === null || _a === void 0 ? void 0 : _a.filename) {
+                if ((_b = req.file) === null || _b === void 0 ? void 0 : _b.filename) {
                     try {
                         newImage = yield (0, supabaseStorage_1.replaceImageInSupabase)(checkObservation.image, req.file);
                     }
@@ -207,7 +247,7 @@ class ObservationController {
                 }
                 const updateObservation = yield prisma_1.default.observation.update({
                     where: { id: Number(id) },
-                    data: Object.assign(Object.assign({}, (((_b = req.file) === null || _b === void 0 ? void 0 : _b.filename) ? { image: newImage || "" } : {})), { userId: Number(userId), name,
+                    data: Object.assign(Object.assign({}, (((_c = req.file) === null || _c === void 0 ? void 0 : _c.filename) ? { image: newImage || "" } : {})), { userId: Number(userId), name,
                         description, date: new Date(date), updatedAt: new Date().toISOString(), active: JSON.parse(active) }),
                 });
                 return res.status(200).send({

@@ -31,8 +31,8 @@ export default class App {
 
   private configure(): void {
     this.app.use(cors()); // to give access for frontend
-    this.app.use(json()); // to read request
-    this.app.use(urlencoded({ extended: true })); // to accept req.body from type
+    this.app.use(express.json()); // to read request
+    this.app.use(express.urlencoded({ extended: true })); // to accept req.body from type
   }
 
   // Define error handling

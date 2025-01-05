@@ -118,37 +118,33 @@ class SelfReflectionController {
                 if (!checkUser) {
                     throw new Error("User not found");
                 }
-                yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
-                    yield Promise.all([
-                        tx.selfEvaluation.create({
+                // Database transaction with increased timeout and logging
+                const result = yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
+                    console.log("Starting transaction for SelfEvaluation");
+                    const selfEvaluation = yield tx.selfEvaluation.create({
+                        data: {
+                            userId: Number(userId),
+                            description,
+                            createAt: new Date(),
+                        },
+                    });
+                    console.log("Created SelfEvaluation:", selfEvaluation);
+                    if (lecturerId) {
+                        const selfEvaluationLecturer = yield tx.selfEvaluationLecturer.create({
                             data: {
-                                userId: Number(userId),
-                                description,
-                            },
-                        }),
-                        tx.selfEvaluationLecturer.create({
-                            data: {
+                                selfEvaluationId: selfEvaluation.id,
                                 userId: Number(lecturerId),
-                                selfEvaluationId: Number(userId),
                             },
-                        }),
-                    ]);
-                    // const createSelfReflection = await tx.selfEvaluation.create({
-                    //   data: {
-                    //     userId: Number(userId),
-                    //     description,
-                    //   },
-                    // });
-                    // await tx.selfEvaluationLecturer.create({
-                    //   data: {
-                    //     userId: Number(lecturerId),
-                    //     selfEvaluationId: Number(createSelfReflection.id),
-                    //   },
-                    // });
-                    return res
-                        .status(200)
-                        .send({ status: true, data: "Self Reflection created" });
-                }));
+                        });
+                        console.log("Created SelfEvaluationLecturer:", selfEvaluationLecturer);
+                    }
+                    console.log("Transaction completed for SelfEvaluation");
+                    return selfEvaluation;
+                }), {
+                    timeout: 15000, // Increase timeout to 15 seconds
+                    maxWait: 5000, // Maximum time to wait for transaction to start
+                });
+                return res.status(201).json({ status: true, data: result });
             }
             catch (error) {
                 next(error);

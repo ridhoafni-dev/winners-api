@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.handleUploadDoc = exports.handleUpload = exports.uploadDoc = exports.upload = void 0;
+exports.handleUploadDoc = exports.handleUpdateUpload = exports.handleUpload = exports.uploadDoc = exports.upload = void 0;
 exports.uploadToSupabase = uploadToSupabase;
 exports.uploadToSupabaseDoc = uploadToSupabaseDoc;
 exports.deleteFromSupabaseDoc = deleteFromSupabaseDoc;
@@ -30,8 +30,14 @@ exports.upload = (0, multer_1.default)({
         fileSize: 5 * 1024 * 1024, // 5MB limit
     },
     fileFilter(_req, file, cb) {
-        file.filename = `IMG${Date.now()}${path_1.default.extname(file.originalname)}`;
-        cb(null, true);
+        const allowedTypes = ["image/jpeg", "image/png", "image/gif"];
+        if (allowedTypes.includes(file.mimetype)) {
+            file.filename = `IMG${Date.now()}${path_1.default.extname(file.originalname)}`;
+            cb(null, true);
+        }
+        else {
+            cb(new Error("Invalid file type"));
+        }
     },
 }).single("image");
 exports.uploadDoc = (0, multer_1.default)({
@@ -63,6 +69,21 @@ const handleUpload = (req, res, next) => {
     });
 };
 exports.handleUpload = handleUpload;
+const handleUpdateUpload = (req, res, next) => {
+    (0, exports.upload)(req, res, (err) => {
+        if (err) {
+            return res.status(400).json({ error: err.message });
+        }
+        // console.log("File details::", {
+        //   size: req.file.size,
+        //   mimetype: req.file.mimetype,
+        //   buffer: req.file.buffer?.length || 0,
+        //   fileName: req.file.originalname,
+        // });
+        // next();
+    });
+};
+exports.handleUpdateUpload = handleUpdateUpload;
 const handleUploadDoc = (req, res, next) => {
     (0, exports.uploadDoc)(req, res, (err) => {
         var _a;
@@ -93,7 +114,7 @@ function uploadToSupabase(file) {
             throw new Error(`Invalid file buffer:: ${file.originalname}`);
         }
         const fileName = `IMG${Date.now()}${path_1.default.extname(file.originalname)}`;
-        const filePath = `public/${fileName}`;
+        const filePath = `observations/${fileName}`;
         console.log("Upload details::", {
             fileName,
             filePath,
@@ -102,7 +123,7 @@ function uploadToSupabase(file) {
         });
         try {
             const { data, error } = yield supabase.storage
-                .from("observations")
+                .from("assets")
                 .upload(filePath, file.buffer, {
                 contentType: file.mimetype,
                 upsert: true,
@@ -113,7 +134,7 @@ function uploadToSupabase(file) {
                 console.error("Upload error:", error);
                 throw error;
             }
-            const { data: { publicUrl }, } = supabase.storage.from("observations").getPublicUrl(filePath);
+            const { data: { publicUrl }, } = supabase.storage.from("assets").getPublicUrl(filePath);
             console.log("return data upload::", publicUrl);
             return publicUrl;
         }
@@ -134,7 +155,7 @@ function uploadToSupabaseDoc(file) {
             throw new Error(`Invalid file buffer:: ${file.originalname}`);
         }
         const fileName = `DOC${Date.now()}${path_1.default.extname(file.originalname)}`;
-        const filePath = `public/${fileName}`;
+        const filePath = `reports/${fileName}`;
         console.log("Upload details::", {
             fileName,
             filePath,
@@ -143,7 +164,7 @@ function uploadToSupabaseDoc(file) {
         });
         try {
             const { data, error } = yield supabase.storage
-                .from("reports")
+                .from("assets")
                 .upload(filePath, file.buffer, {
                 contentType: file.mimetype,
                 upsert: true,
@@ -154,7 +175,7 @@ function uploadToSupabaseDoc(file) {
                 console.error("Upload error:", error);
                 throw error;
             }
-            const { data: { publicUrl }, } = supabase.storage.from("reports").getPublicUrl(filePath);
+            const { data: { publicUrl }, } = supabase.storage.from("assets").getPublicUrl(filePath);
             console.log("return data upload::", publicUrl);
             return publicUrl;
         }
@@ -173,8 +194,8 @@ function deleteFromSupabaseDoc(docUrl) {
             const filePath = urlParts[urlParts.length - 1];
             console.log("URL parts delete::", filePath);
             const { data, error } = yield supabase.storage
-                .from("reports")
-                .remove([`public/${filePath}`]);
+                .from("assets")
+                .remove([`reports/${filePath}`]);
             if (error) {
                 console.error("Delete error::", error);
                 throw error;
@@ -211,8 +232,8 @@ function deleteFromSupabase(imageUrl) {
             const filePath = urlParts[urlParts.length - 1];
             console.log("URL parts delete::", filePath);
             const { data, error } = yield supabase.storage
-                .from("observations")
-                .remove([`public/${filePath}`]);
+                .from("assets")
+                .remove([`observations/${filePath}`]);
             if (error) {
                 console.error("Delete error::", error);
                 throw error;
