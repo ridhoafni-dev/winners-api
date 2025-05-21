@@ -12,44 +12,44 @@ exports.regisValidation = [
     (0, express_validator_1.body)("name").notEmpty().withMessage("Name required"),
     (0, express_validator_1.body)("name")
         .optional()
-        .isLength({ min: 6 })
+        // .isLength({ min: 6 })
         .withMessage("Name min 6 character"),
     (0, express_validator_1.body)("address").notEmpty().withMessage("Address required"),
     (0, express_validator_1.body)("address")
         .optional()
-        .isLength({ min: 6 })
+        // .isLength({ min: 6 })
         .withMessage("Address min 6 character"),
     (0, express_validator_1.body)("nim").notEmpty().withMessage("NIM required"),
     (0, express_validator_1.body)("nim")
         .optional()
-        .isLength({ min: 8 })
+        // .isLength({ min: 8 })
         .withMessage("NIM min 8 character"),
     (0, express_validator_1.body)("stase").notEmpty().withMessage("Stase required"),
     (0, express_validator_1.body)("stase")
         .optional()
-        .isLength({ min: 3 })
+        // .isLength({ min: 3 })
         .withMessage("Stase min 6 character"),
     (0, express_validator_1.body)("startSchoolYear").notEmpty().withMessage("Start School Year required"),
     (0, express_validator_1.body)("startSchoolYear")
         .optional()
-        .isLength({ min: 4 })
-        .isNumeric()
+        // .isLength({ min: 4 })
+        // .isNumeric()
         .withMessage("End School Year min 4 character and number"),
     (0, express_validator_1.body)("endSchoolYear").notEmpty().withMessage("End School Year required"),
     (0, express_validator_1.body)("endSchoolYear")
         .optional()
-        .isLength({ min: 4 })
-        .isNumeric()
+        // .isLength({ min: 4 })
+        // .isNumeric()
         .withMessage("End School Year min 4 character and number"),
     (0, express_validator_1.body)("password").notEmpty().withMessage("Password required"),
     (0, express_validator_1.body)("password")
-        .isStrongPassword({
-        minLength: 6,
-        minLowercase: 1,
-        minNumbers: 1,
-        minSymbols: 0,
-        minUppercase: 0,
-    })
+        // .isStrongPassword({
+        //   minLength: 6,
+        //   minLowercase: 1,
+        //   minNumbers: 1,
+        //   minSymbols: 0,
+        //   minUppercase: 0,
+        // })
         .withMessage("Password min 6, alpha min 1, digit min 1"),
     (req, res, next) => {
         const errorValidator = (0, express_validator_1.validationResult)(req); // untuk menampung jika ada error dari middleware validator

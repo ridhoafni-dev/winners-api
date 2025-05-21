@@ -1,11 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import prisma from "../prisma";
 import fs from "fs";
-import {
-  deleteFromSupabaseDoc,
-  replaceImageInSupabaseDoc,
-  uploadToSupabaseDoc,
-} from "../utils/supabaseStorage";
 
 export class ReportController {
   async getReports(req: Request, res: Response, next: NextFunction) {
@@ -92,7 +87,7 @@ export class ReportController {
       let mapped = dataReports.map((data) => {
         return {
           ...data,
-          // image: `${req.get("host")}/${data.image}`,
+          image: `${req.get("host")}/${data.image}`,
           createAt: data.createAt.toISOString(),
         };
       });
@@ -112,25 +107,23 @@ export class ReportController {
   async createReport(req: Request, res: Response, next: NextFunction) {
     try {
       const { userId, date, lecturerId } = req.body;
-
-      const [checkUser, docUrl] = await Promise.all([
-        prisma.user.findUnique({
-          where: { id: Number(userId) },
-        }),
-        req.file ? uploadToSupabaseDoc(req.file) : Promise.resolve(null),
-      ]);
+      const checkUser = await prisma.user.findUnique({
+        where: {
+          id: Number(userId),
+        },
+      });
 
       if (!checkUser) {
         throw new Error("User not found");
       }
 
       await prisma.$transaction(async (tx) => {
-        const createReport = await tx.report.create({
+        const createReport = await prisma.report.create({
           data: {
             userId: Number(userId),
             date: new Date(date),
             active: true,
-            image: docUrl || "",
+            image: `document/${req.file?.filename}`,
           },
         });
 
@@ -150,9 +143,8 @@ export class ReportController {
 
   async updateReport(req: Request, res: Response, next: NextFunction) {
     try {
+      const { userId, date, active } = req.body;
       const { id } = req.params;
-
-      const userId = req.dataUser?.id;
 
       const checkUser = await prisma.user.findUnique({
         where: {
@@ -174,33 +166,29 @@ export class ReportController {
         throw new Error("Report not found");
       }
 
-      await deleteFromSupabaseDoc(checkReport.image);
-
-      let newImage = null;
-
       if (req.file?.filename) {
-        try {
-          newImage = await replaceImageInSupabaseDoc(
-            checkReport.image,
-            req.file
-          );
-        } catch (error) {
-          console.error("Error deleting old image:", error);
-          throw new Error("Failed to delete old image");
-        }
-        // fs.unlink(
-        //   "./public/document/" + checkReport.image.replace("document/", ""),
-        //   (err) => {
-        //     if (err) {
-        //       console.log(err);
-        //       throw new Error(err.message);
-        //     }
-        //   }
-        // );
+        fs.unlink(
+          "./public/document/" + checkReport.image.replace("document/", ""),
+          (err) => {
+            if (err) {
+              console.log(err);
+              throw new Error(err.message);
+            }
+          }
+        );
       }
 
-      const updateReport = await prisma.report.delete({
+      const updateReport = await prisma.report.update({
         where: { id: Number(id) },
+        data: {
+          userId: Number(userId),
+          ...(req.file?.filename
+            ? { image: `document/${req.file?.filename}` }
+            : {}),
+          active: JSON.parse(active),
+          date: new Date(date),
+          updatedAt: new Date().toISOString(),
+        },
       });
 
       return res.status(200).send({
