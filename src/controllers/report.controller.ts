@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import prisma from "../prisma";
 import fs from "fs";
+import path from "path";
 
 export class ReportController {
   async getReports(req: Request, res: Response, next: NextFunction) {
@@ -199,6 +200,77 @@ export class ReportController {
       });
     } catch (error: any) {
       next(error);
+    }
+  }
+
+  async downloadDocument(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+
+      const report = await prisma.report.findUnique({
+        where: {
+          id: Number(id),
+          active: true,
+        },
+      });
+
+      if (!report) {
+        return res.status(404).send({
+          status: false,
+          message: "Document not found",
+        });
+      }
+
+      // Extract filename from the image path
+      const filename = report.image.replace("document/", "");
+      const filePath = path.join(__dirname, "../../public/document", filename);
+
+      // Check if file exists
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).send({
+          status: false,
+          message: "File not found on server",
+        });
+      }
+
+      // Generate download URL
+      const protocol = req.protocol;
+      const host = req.get('host');
+      const baseUrl = `${protocol}://${host}`;
+      const downloadUrl = `${baseUrl}/document/${filename}`;
+      
+      // Return download URL in response
+      return res.status(200).send({
+        status: true,
+        data: downloadUrl
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+  
+  // Helper function to determine content type
+  private getContentType(filename: string): string {
+    const extension = path.extname(filename).toLowerCase();
+    
+    switch (extension) {
+      case '.pdf':
+        return 'application/pdf';
+      case '.doc':
+        return 'application/msword';
+      case '.docx':
+        return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      case '.xls':
+        return 'application/vnd.ms-excel';
+      case '.xlsx':
+        return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      case '.png':
+        return 'image/png';
+      case '.jpg':
+      case '.jpeg':
+        return 'image/jpeg';
+      default:
+        return 'application/octet-stream';
     }
   }
 }
