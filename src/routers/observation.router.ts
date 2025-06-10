@@ -42,10 +42,15 @@ export class ObservationRouter {
       verifyToken,
       this.observationController.getObservations
     );
-    this.router.get(
-      "/:userId",
+    // this.router.get(
+    //   "/:userId",
+    //   verifyToken,
+    //   this.observationController.getObservationsByUserId
+    // );
+     this.router.get(
+      "/:id",
       verifyToken,
-      this.observationController.getObservationsByUserId
+      this.observationController.getObservationById
     );
     this.router.get(
       "/:userId/:startDate/:endDate/:lecturer",

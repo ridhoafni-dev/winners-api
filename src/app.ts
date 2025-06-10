@@ -16,6 +16,7 @@ import { MemoRouter } from "./routers/memo.router";
 import { ObservationRouter } from "./routers/observation.router";
 import { ActivityPlanRouter } from "./routers/activityPlan.router";
 import { ReportRouter } from "./routers/report.router";
+import path from 'path';
 
 const PORT = 8080;
 
@@ -33,6 +34,13 @@ export default class App {
     this.app.use(cors()); // to give access for frontend
     this.app.use(express.json()); // to read request
     this.app.use(express.urlencoded({ extended: true })); // to accept req.body from type
+    // Configure static file serving
+    const publicPath = path.resolve(__dirname, '../public');
+    this.app.use(express.static(publicPath));
+    
+    // Log the path for debugging
+    console.log('Public directory path:', publicPath);
+
   }
 
   // Define error handling
@@ -75,7 +83,11 @@ export default class App {
     this.app.get("/", async (req: Request, res: Response) => {
       return res.status(200).send("Hello World!!");
     });
-    this.app.use(express.static("public"));
+
+    const publicPath = path.join(__dirname, '../public');
+    this.app.use('/image', express.static(publicPath + '/image'));
+  
+
     this.app.use("/samples", sampleRouter.getRouter());
     this.app.use("/posts", postsRouter.getRouter());
     this.app.use("/api/auth", authRouter.getRouter());
@@ -89,7 +101,7 @@ export default class App {
   public start(): void {
     //await redisClient.connect();
     this.app.listen(PORT, () => {
-      console.log(`API RUNNING : http//localhost:${PORT}`);
+      console.log(`API RUNNING : http://localhost:${PORT}`);
     });
   }
 }

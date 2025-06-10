@@ -41,9 +41,9 @@ export class ActivityPlanRouter {
       this.activityPlanController.getActivityPlans
     );
     this.router.get(
-      "/:userId",
+      "/:id",
       verifyToken,
-      this.activityPlanController.getActivityPlansByUserId
+      this.activityPlanController.getActivityPlanById
     );
     this.router.get(
       "/:userId/:startDate/:endDate/:lecturer",

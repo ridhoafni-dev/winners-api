@@ -34,21 +34,13 @@ class ActivityPlanController {
             }
         });
     }
-    getActivityPlansByUserId(req, res, next) {
+    getActivityPlanById(req, res, next) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const { userId } = req.params;
-                const checkUser = yield prisma_1.default.user.findUnique({
+                const { id } = req.params;
+                const dataActivityPlans = yield prisma_1.default.activityPlan.findUnique({
                     where: {
-                        id: Number(userId),
-                    },
-                });
-                if (!checkUser) {
-                    throw new Error("User not found");
-                }
-                const dataActivityPlans = yield prisma_1.default.activityPlan.findMany({
-                    where: {
-                        userId: Number(userId),
+                        id: Number(id),
                         active: true,
                     },
                     include: {

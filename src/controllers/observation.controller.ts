@@ -28,6 +28,8 @@ export class ObservationController {
   }
 
 
+
+
   async getObservationsByUserId(
     req: Request,
     res: Response,
@@ -65,6 +67,54 @@ export class ObservationController {
       });
 
       return res.status(200).send({ status: true, data: dataObservations });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+
+  async getObservationById(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const { id } = req.params;
+
+      const checkObservation = await prisma.observation.findUnique({
+        where: {
+          id: Number(id),
+        },
+      });
+
+      if (!checkObservation) {
+        throw new Error("Observation not found");
+      }
+
+      let dataObservation = await prisma.observation.findUnique({
+        where: {
+          id: Number(id),
+        },
+        include: {
+          user: { select: { id: true, email: true, role: true } },
+          observationComments: true,
+          observationLecturers: {
+            select: { userId: true },
+          },
+        },
+      });
+
+      if (!dataObservation?.user) {
+        throw new Error("Observation data is incomplete");
+      }
+      dataObservation = {
+        ...dataObservation,
+        image: `${req.get("host")}/${dataObservation.image}`,
+        user: dataObservation.user,
+        observationComments: dataObservation.observationComments,
+      };
+
+      return res.status(200).send({ status: true, data: dataObservation });
     } catch (error) {
       next(error);
     }
@@ -207,7 +257,7 @@ export class ObservationController {
 
   async updateObservation(req: Request, res: Response, next: NextFunction) {
     try {
-      const { userId, name, description, date, active } = req.body;
+      const { userId, name, description, date, lecturerId, active } = req.body;
       const { id } = req.params;
 
       const checkUser = await prisma.user.findUnique({
@@ -240,7 +290,8 @@ export class ObservationController {
         );
       }
 
-      const updateObservation = await prisma.observation.update({
+      await prisma.$transaction(async (tx) => {
+        const updateObservation = await prisma.observation.update({
         where: { id: Number(id) },
         data: {
           ...(req.file?.filename
@@ -255,12 +306,22 @@ export class ObservationController {
         },
       });
 
+        await tx.observationLecturer.update({
+          where: {
+            observationId: Number(id),
+          },
+          data: {
+            userId: Number(lecturerId),
+          },
+        });
+
       return res.status(200).send({
         success: true,
         data: {
           data: updateObservation,
         },
-      });
+      });      });
+
     } catch (error: any) {
       next(error);
     }

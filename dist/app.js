@@ -22,6 +22,7 @@ const memo_router_1 = require("./routers/memo.router");
 const observation_router_1 = require("./routers/observation.router");
 const activityPlan_router_1 = require("./routers/activityPlan.router");
 const report_router_1 = require("./routers/report.router");
+const path_1 = __importDefault(require("path"));
 const PORT = 8080;
 class App {
     constructor() {
@@ -34,6 +35,11 @@ class App {
         this.app.use((0, cors_1.default)()); // to give access for frontend
         this.app.use(express_1.default.json()); // to read request
         this.app.use(express_1.default.urlencoded({ extended: true })); // to accept req.body from type
+        // Configure static file serving
+        const publicPath = path_1.default.resolve(__dirname, '../public');
+        this.app.use(express_1.default.static(publicPath));
+        // Log the path for debugging
+        console.log('Public directory path:', publicPath);
     }
     // Define error handling
     handleError() {
@@ -70,7 +76,8 @@ class App {
         this.app.get("/", (req, res) => __awaiter(this, void 0, void 0, function* () {
             return res.status(200).send("Hello World!!");
         }));
-        this.app.use(express_1.default.static("public"));
+        const publicPath = path_1.default.join(__dirname, '../public');
+        this.app.use('/image', express_1.default.static(publicPath + '/image'));
         this.app.use("/samples", sampleRouter.getRouter());
         this.app.use("/posts", postsRouter.getRouter());
         this.app.use("/api/auth", authRouter.getRouter());
@@ -83,7 +90,7 @@ class App {
     start() {
         //await redisClient.connect();
         this.app.listen(PORT, () => {
-            console.log(`API RUNNING : http//localhost:${PORT}`);
+            console.log(`API RUNNING : http://localhost:${PORT}`);
         });
     }
 }
