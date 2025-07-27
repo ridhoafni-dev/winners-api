@@ -9,7 +9,9 @@ export class MemoController {
           active: true,
         },
         include: {
-          user: { select: { id: true, email: true, role: true } },
+          user: {
+            select: { id: true, email: true, role: true, profile: true },
+          },
           memoComment: true,
         },
       });
@@ -19,21 +21,26 @@ export class MemoController {
     }
   }
 
-  async getMemosByUserId(req: Request, res: Response, next: NextFunction) {
+  async getMemoById(req: Request, res: Response, next: NextFunction) {
     try {
-      const { userId } = req.params;
+      const { id } = req.params;
 
-      const dataMemos = await prisma.memo.findMany({
+      const dataMemo = await prisma.memo.findUnique({
         where: {
-          userId: Number(userId),
+          id: Number(id),
           active: true,
         },
         include: {
-          user: { select: { id: true, email: true, role: true } },
+          user: {
+            select: { id: true, email: true, role: true, profile: true },
+          },
           memoComment: true,
+          memoLecturer: {
+            select: { userId: true },
+          },
         },
       });
-      return res.status(200).send({ status: true, data: dataMemos });
+      return res.status(200).send({ status: true, data: dataMemo });
     } catch (error) {
       next(error);
     }
@@ -48,14 +55,16 @@ export class MemoController {
       const { userId, startDate, endDate, lecturer } = req.params;
       const isLecturer = Number(lecturer) ? true : false;
 
-      const checkUser = await prisma.user.findUnique({
-        where: {
-          id: Number(userId),
-        },
-      });
+      if (!isLecturer) {
+        const checkUser = await prisma.user.findUnique({
+          where: {
+            id: Number(userId),
+          },
+        });
 
-      if (!checkUser) {
-        throw new Error("User not found");
+        if (!checkUser) {
+          throw new Error("User not found");
+        }
       }
 
       const dataMemos = await prisma.memo.findMany({
@@ -68,7 +77,9 @@ export class MemoController {
           active: true,
         },
         include: {
-          user: { select: { id: true, email: true, role: true } },
+          user: {
+            select: { id: true, email: true, role: true, profile: true },
+          },
           memoComment: true,
           memoLecturer: true,
         },
@@ -148,21 +159,22 @@ export class MemoController {
       if (!checkSelfEvaluation) {
         throw new Error("Memo not found");
       }
+      await prisma.$transaction(async (tx) => {
+        const updateMemo = await prisma.memo.update({
+          where: { id: Number(id) },
+          data: {
+            title,
+            active: JSON.parse(active),
+            updatedAt: new Date().toISOString(),
+          },
+        });
 
-      const updateMemo = await prisma.memo.update({
-        where: { id: Number(id) },
-        data: {
-          title,
-          active: JSON.parse(active),
-          updatedAt: new Date().toISOString(),
-        },
-      });
-
-      return res.status(200).send({
-        success: true,
-        data: {
-          data: updateMemo,
-        },
+        return res.status(200).send({
+          success: true,
+          data: {
+            data: updateMemo,
+          },
+        });
       });
     } catch (error: any) {
       next(error);

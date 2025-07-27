@@ -2,65 +2,58 @@ import { NextFunction, Request, Response } from "express";
 import prisma from "../prisma";
 import { Prisma } from "@prisma/client";
 
-export class SelfReflectionController {
-  async getSelfReflections(req: Request, res: Response, next: NextFunction) {
+export class SelfEvaluationController {
+  async getSelfEvaluationById(req: Request, res: Response, next: NextFunction) {
     try {
-      const dataReflections = await prisma.selfEvaluation.findMany({
+      const { id } = req.params;
+
+      const dataReflection = await prisma.selfEvaluation.findUnique({
         where: {
+          id: Number(id),
           active: true,
         },
         include: {
-          user: { select: { id: true, email: true, role: true } },
-          selfEvaluation: true,
+          user: {
+            select: { id: true, email: true, role: true, profile: true },
+          },
+          selfEvaluationComments: true,
+          selfEvaluationLecturer: {
+            select: {
+              id: true,
+              userId: true,
+              user: {
+                select: {
+                  profile: {
+                    select: {
+                      id: true,
+                      name: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
         },
       });
-      return res.status(200).send({ status: true, data: dataReflections });
-    } catch (error) {
-      next(error);
-    }
-  }
+      let mapped = {
+        ...dataReflection,
+        createAt: dataReflection?.createAt.toISOString(),
+        selfEvaluationLecturer: dataReflection?.selfEvaluationLecturer
+          ? {
+              id: dataReflection?.selfEvaluationLecturer?.id,
+              userId: dataReflection?.selfEvaluationLecturer?.userId,
+              name: dataReflection?.selfEvaluationLecturer?.user?.profile?.name,
+            }
+          : null,
+      };
 
-  async getSelfReflectionByUserId(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ) {
-    try {
-      const { userId } = req.params;
-
-      const checkUser = await prisma.user.findUnique({
-        where: {
-          id: Number(userId),
-        },
-      });
-
-      if (!checkUser) {
-        throw new Error("User not found");
-      }
-
-      const dataReflections = await prisma.selfEvaluation.findMany({
-        where: {
-          userId: Number(userId),
-          active: true,
-        },
-        include: {
-          user: { select: { id: true, email: true, role: true } },
-          selfEvaluation: true,
-        },
-      });
-      let mapped = dataReflections.map((data) => {
-        return {
-          ...data,
-          createAt: data.createAt.toISOString(),
-        };
-      });
       return res.status(200).send({ status: true, data: mapped });
     } catch (error) {
       next(error);
     }
   }
 
-  async getSelfReflectionByUserIdByDate(
+  async getSelfEvaluationsByUserIdByDate(
     req: Request,
     res: Response,
     next: NextFunction
@@ -68,35 +61,66 @@ export class SelfReflectionController {
     try {
       const { userId, startDate, endDate, lecturer } = req.params;
       const isLecturer = Number(lecturer) ? true : false;
-      const checkUser = await prisma.user.findUnique({
-        where: {
-          id: Number(userId),
-        },
-      });
+      if (!isLecturer) {
+        const checkUser = await prisma.user.findUnique({
+          where: {
+            id: Number(userId),
+          },
+        });
 
-      if (!checkUser) {
-        throw new Error("User not found");
+        if (!checkUser) {
+          throw new Error("User not found");
+        }
       }
+
+      // Parse dates and set time components
+      const start = new Date(startDate as string);
+      start.setHours(0, 0, 0, 0); // Start of day
+
+      const end = new Date(endDate as string);
+      end.setHours(23, 59, 59, 999); // End of day
 
       const dataReflections = await prisma.selfEvaluation.findMany({
         where: {
           ...(isLecturer ? {} : { userId: Number(userId) }),
           createAt: {
-            gte: new Date(startDate as string),
-            lte: new Date(endDate as string),
+            gte: start,
+            lte: end,
           },
           active: true,
         },
         include: {
-          user: { select: { id: true, email: true, role: true } },
-          selfEvaluationLecturer: true,
-          selfEvaluation: true,
+          user: {
+            select: { id: true, email: true, role: true, profile: true },
+          },
+          selfEvaluationLecturer: {
+            select: {
+              id: true,
+              userId: true,
+              user: {
+                select: {
+                  profile: {
+                    select: {
+                      name: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+          selfEvaluationComments: true,
         },
       });
       let mapped = dataReflections.map((data) => {
         return {
           ...data,
           createAt: data.createAt.toISOString(),
+          selfEvaluationLecturer: data?.selfEvaluationLecturer
+            ? {
+                userId: data?.selfEvaluationLecturer?.userId,
+                name: data?.selfEvaluationLecturer?.user?.profile?.name,
+              }
+            : null,
         };
       });
 
@@ -112,7 +136,7 @@ export class SelfReflectionController {
     }
   }
 
-  async createSelfReflection(req: Request, res: Response, next: NextFunction) {
+  async createSelfEvaluation(req: Request, res: Response, next: NextFunction) {
     try {
       const { userId, description, lecturerId } = req.body;
       const checkUser = await prisma.user.findUnique({
@@ -170,13 +194,13 @@ export class SelfReflectionController {
     }
   }
 
-  async updateSelfReflection(req: Request, res: Response, next: NextFunction) {
+  async updateSelfEvaluation(req: Request, res: Response, next: NextFunction) {
     try {
-      const { userId, description, active } = req.body;
+      const { userId, description, lecturerId } = req.body;
       const { id } = req.params;
       const checkUser = await prisma.user.findUnique({
         where: {
-          id: userId,
+          id: Number(userId),
         },
       });
 
@@ -184,27 +208,38 @@ export class SelfReflectionController {
         throw new Error("User not found");
       }
 
-      const updateReflection = await prisma.selfEvaluation.update({
-        where: { id: Number(id) },
-        data: {
-          description,
-          active: active,
-          updatedAt: new Date().toISOString(),
-        },
-      });
+      await prisma.$transaction(async (tx) => {
+        const updateReflection = await tx.selfEvaluation.update({
+          where: { id: Number(id) },
+          data: {
+            description,
+            active: true,
+            updatedAt: new Date().toISOString(),
+          },
+        });
 
-      return res.status(200).send({
-        success: true,
-        data: {
-          data: updateReflection,
-        },
+        await tx.selfEvaluationLecturer.update({
+          where: {
+            selfEvaluationId: Number(id),
+          },
+          data: {
+            userId: Number(lecturerId),
+          },
+        });
+
+        return res.status(200).send({
+          success: true,
+          data: {
+            data: updateReflection,
+          },
+        });
       });
     } catch (error: any) {
       next(error);
     }
   }
 
-  async createSelfReflectionComment(
+  async createSelfEvaluationComment(
     req: Request,
     res: Response,
     next: NextFunction

@@ -1,17 +1,7 @@
-import { Router } from "express";
-import {
-  memoValidationComment,
-  observationValidation,
-} from "../middleware/validator";
+import { Router, Request, Response, NextFunction } from "express";
+import { verifyToken } from "../middleware/verifyToken";
 import { ObservationController } from "../controllers/observation.controller";
 import { uploader } from "../middleware/uploader";
-import { verifyToken } from "../middleware/verifyToken";
-import {
-  handleUpdateUpload,
-  handleUpload,
-  upload,
-} from "../utils/supabaseStorage";
-import { checkContentType } from "../middleware/checkContentType";
 
 export class ObservationRouter {
   private router: Router;
@@ -24,49 +14,75 @@ export class ObservationRouter {
   }
 
   private init(): void {
+    // Create bound methods for router handlers
+    const createObservation = (
+      req: Request,
+      res: Response,
+      next: NextFunction
+    ) => {
+      this.observationController.createObservation(req, res, next);
+    };
+
+    const updateObservation = (
+      req: Request,
+      res: Response,
+      next: NextFunction
+    ) => {
+      this.observationController.updateObservation(req, res, next);
+    };
+
+    const getObservations = (
+      req: Request,
+      res: Response,
+      next: NextFunction
+    ) => {
+      this.observationController.getObservations(req, res, next);
+    };
+
+    const getObservationById = (
+      req: Request,
+      res: Response,
+      next: NextFunction
+    ) => {
+      this.observationController.getObservationById(req, res, next);
+    };
+
+    const getObservationsByUserId = (
+      req: Request,
+      res: Response,
+      next: NextFunction
+    ) => {
+      this.observationController.getObservationsByUserId(req, res, next);
+    };
+
+    const getObservationsByUserIdByDate = (
+      req: Request,
+      res: Response,
+      next: NextFunction
+    ) => {
+      this.observationController.getObservationsByUserIdByDate(req, res, next);
+    };
+
+    // Register routes with bound methods
     this.router.post(
       "/",
-      //uploader("IMG", "/image").single("image"),
       verifyToken,
-      handleUpload,
-      observationValidation,
-      this.observationController.createObservation
-    );
-    this.router.post(
-      "/comment/:id",
-      verifyToken,
-      memoValidationComment,
-      this.observationController.createObservationComment
+      uploader("IMG", "/image").single("image"),
+      createObservation
     );
     this.router.patch(
       "/:id",
-      // handleUpload,
-      upload,
       verifyToken,
-      // uploader("IMG", "/image").single("image"),
-      this.observationController.updateObservation
+      uploader("IMG", "/image").single("image"),
+      updateObservation
     );
-    this.router.delete(
-      "/:id",
-      // handleUpload,
-      verifyToken,
-      // uploader("IMG", "/image").single("image"),
-      this.observationController.deleteObservation
-    );
-    this.router.get(
-      "/",
-      verifyToken,
-      this.observationController.getObservations
-    );
-    this.router.get(
-      "/:userId",
-      verifyToken,
-      this.observationController.getObservationsByUserId
-    );
+    this.router.get("/", verifyToken, getObservations);
+    this.router.get("/:id", verifyToken, getObservationById);
+    this.router.get("/user/:userId", verifyToken, getObservationsByUserId);
     this.router.get(
       "/:userId/:startDate/:endDate/:lecturer",
       verifyToken,
-      this.observationController.getObservationsByUserIdByDate
+      getObservationsByUserIdByDate
     );
   }
 

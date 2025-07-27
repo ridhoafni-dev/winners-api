@@ -12,12 +12,19 @@ class ActivityPlanRouter {
         this.init();
     }
     init() {
-        this.router.post("/", validator_1.activityPlanValidation, verifyToken_1.verifyToken, this.activityPlanController.createActivityPlan);
-        this.router.post("/comment/:id", validator_1.memoValidationComment, verifyToken_1.verifyToken, this.activityPlanController.createActivityPlanComment);
-        this.router.patch("/:id", validator_1.activityPlanValidation, verifyToken_1.verifyToken, this.activityPlanController.updateActivityPlan);
-        this.router.get("/", verifyToken_1.verifyToken, this.activityPlanController.getActivityPlans);
-        this.router.get("/:userId", verifyToken_1.verifyToken, this.activityPlanController.getActivityPlansByUserId);
-        this.router.get("/:userId/:startDate/:endDate/:lecturer", verifyToken_1.verifyToken, this.activityPlanController.getActivityPlansByUserIdByDate);
+        // Bind controller methods to maintain context
+        const createActivityPlan = this.activityPlanController.createActivityPlan.bind(this.activityPlanController);
+        const createActivityPlanComment = this.activityPlanController.createActivityPlanComment.bind(this.activityPlanController);
+        const updateActivityPlan = this.activityPlanController.updateActivityPlan.bind(this.activityPlanController);
+        const getActivityPlans = this.activityPlanController.getActivityPlans.bind(this.activityPlanController);
+        const getActivityPlanById = this.activityPlanController.getActivityPlanById.bind(this.activityPlanController);
+        const getActivityPlansByUserIdByDate = this.activityPlanController.getActivityPlansByUserIdByDate.bind(this.activityPlanController);
+        this.router.post("/", validator_1.activityPlanValidation, verifyToken_1.verifyToken, createActivityPlan);
+        this.router.post("/comment/:id", validator_1.memoValidationComment, verifyToken_1.verifyToken, createActivityPlanComment);
+        this.router.patch("/:id", validator_1.activityPlanValidation, verifyToken_1.verifyToken, updateActivityPlan);
+        this.router.get("/", verifyToken_1.verifyToken, getActivityPlans);
+        this.router.get("/:id", verifyToken_1.verifyToken, getActivityPlanById);
+        this.router.get("/:userId/:startDate/:endDate/:lecturer", verifyToken_1.verifyToken, getActivityPlansByUserIdByDate);
     }
     getRouter() {
         return this.router;

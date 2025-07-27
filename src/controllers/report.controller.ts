@@ -1,11 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import prisma from "../prisma";
 import fs from "fs";
-import {
-  deleteFromSupabaseDoc,
-  replaceImageInSupabaseDoc,
-  uploadToSupabaseDoc,
-} from "../utils/supabaseStorage";
+import path from "path";
 
 export class ReportController {
   async getReports(req: Request, res: Response, next: NextFunction) {
@@ -55,6 +51,26 @@ export class ReportController {
     }
   }
 
+  async getReportById(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+
+      const dataReport = await prisma.report.findUnique({
+        where: {
+          id: Number(id),
+          active: true,
+        },
+        include: {
+          user: { select: { id: true, email: true, role: true } },
+          reportLecturer: true,
+        },
+      });
+      return res.status(200).send({ status: true, data: dataReport });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async getReportsByUserIdByDate(
     req: Request,
     res: Response,
@@ -92,7 +108,7 @@ export class ReportController {
       let mapped = dataReports.map((data) => {
         return {
           ...data,
-          // image: `${req.get("host")}/${data.image}`,
+          image: `${req.get("host")}/${data.image}`,
           createAt: data.createAt.toISOString(),
         };
       });
@@ -112,13 +128,11 @@ export class ReportController {
   async createReport(req: Request, res: Response, next: NextFunction) {
     try {
       const { userId, date, lecturerId } = req.body;
-
-      const [checkUser, docUrl] = await Promise.all([
-        prisma.user.findUnique({
-          where: { id: Number(userId) },
-        }),
-        req.file ? uploadToSupabaseDoc(req.file) : Promise.resolve(null),
-      ]);
+      const checkUser = await prisma.user.findUnique({
+        where: {
+          id: Number(userId),
+        },
+      });
 
       if (!checkUser) {
         throw new Error("User not found");
@@ -130,7 +144,7 @@ export class ReportController {
             userId: Number(userId),
             date: new Date(date),
             active: true,
-            image: docUrl || "",
+            image: `document/${req.file?.filename}`,
           },
         });
 
@@ -150,9 +164,8 @@ export class ReportController {
 
   async updateReport(req: Request, res: Response, next: NextFunction) {
     try {
+      const { userId, date, lecturerId } = req.body;
       const { id } = req.params;
-
-      const userId = req.dataUser?.id;
 
       const checkUser = await prisma.user.findUnique({
         where: {
@@ -174,43 +187,124 @@ export class ReportController {
         throw new Error("Report not found");
       }
 
-      await deleteFromSupabaseDoc(checkReport.image);
-
-      let newImage = null;
-
       if (req.file?.filename) {
-        try {
-          newImage = await replaceImageInSupabaseDoc(
-            checkReport.image,
-            req.file
-          );
-        } catch (error) {
-          console.error("Error deleting old image:", error);
-          throw new Error("Failed to delete old image");
-        }
-        // fs.unlink(
-        //   "./public/document/" + checkReport.image.replace("document/", ""),
-        //   (err) => {
-        //     if (err) {
-        //       console.log(err);
-        //       throw new Error(err.message);
-        //     }
-        //   }
-        // );
+        fs.unlink(
+          "./public/document/" + checkReport.image.replace("document/", ""),
+          (err) => {
+            if (err) {
+              console.log(err);
+              throw new Error(err.message);
+            }
+          }
+        );
       }
 
-      const updateReport = await prisma.report.delete({
+
+  await prisma.$transaction(async (tx) => {
+
+      const updateReport = await tx.report.update({
         where: { id: Number(id) },
+        data: {
+          userId: Number(userId),
+          ...(req.file?.filename
+            ? { image: `document/${req.file?.filename}` }
+            : {}),
+          active: true,
+          date: new Date(date),
+          updatedAt: new Date().toISOString(),
+        },
       });
 
-      return res.status(200).send({
+        await tx.reportLecturer.update({
+          where: {
+              reportId: Number(id),
+            },
+          data: {
+            userId: Number(lecturerId),
+          },
+        });
+
+        return res.status(200).send({
         success: true,
         data: {
           data: updateReport,
         },
       });
+      });
+
     } catch (error: any) {
       next(error);
+    }
+  }
+
+  async downloadDocument(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+
+      const report = await prisma.report.findUnique({
+        where: {
+          id: Number(id),
+          active: true,
+        },
+      });
+
+      if (!report) {
+        return res.status(404).send({
+          status: false,
+          message: "Document not found",
+        });
+      }
+
+      // Extract filename from the image path
+      const filename = report.image.replace("document/", "");
+      const filePath = path.join(__dirname, "../../public/document", filename);
+
+      // Check if file exists
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).send({
+          status: false,
+          message: "File not found on server",
+        });
+      }
+
+      // Generate download URL
+      const protocol = req.protocol;
+      const host = req.get('host');
+      const baseUrl = `${protocol}://${host}`;
+      const downloadUrl = `${baseUrl}/document/${filename}`;
+      
+      // Return download URL in response
+      return res.status(200).send({
+        status: true,
+        data: downloadUrl
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+  
+  // Helper function to determine content type
+  private getContentType(filename: string): string {
+    const extension = path.extname(filename).toLowerCase();
+    
+    switch (extension) {
+      case '.pdf':
+        return 'application/pdf';
+      case '.doc':
+        return 'application/msword';
+      case '.docx':
+        return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      case '.xls':
+        return 'application/vnd.ms-excel';
+      case '.xlsx':
+        return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      case '.png':
+        return 'image/png';
+      case '.jpg':
+      case '.jpeg':
+        return 'image/jpeg';
+      default:
+        return 'application/octet-stream';
     }
   }
 }

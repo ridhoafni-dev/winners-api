@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, Request, Response, NextFunction } from "express";
 import { memoValidation, memoValidationComment } from "../middleware/validator";
 import { MemoController } from "../controllers/memo.controller";
 import { verifyToken } from "../middleware/verifyToken";
@@ -14,35 +14,38 @@ export class MemoRouter {
   }
 
   private init(): void {
-    this.router.post(
-      "/",
-      memoValidation,
-      verifyToken,
-      this.memoController.createMemo
-    );
-    this.router.post(
-      "/comment/:id",
-      memoValidationComment,
-      verifyToken,
-      this.memoController.createMemoComment
-    );
-    this.router.patch(
-      "/:id",
-      memoValidation,
-      verifyToken,
-      this.memoController.updateMemo
-    );
-    this.router.get("/", verifyToken, this.memoController.getMemos);
-    this.router.get(
-      "/:userId",
-      verifyToken,
-      this.memoController.getMemosByUserId
-    );
-    this.router.get(
-      "/:userId/:startDate/:endDate/:lecturer",
-      verifyToken,
-      this.memoController.getMemosByUserIdByDate
-    );
+    // Create wrapper functions to ensure proper binding
+    const createMemo = (req: Request, res: Response, next: NextFunction) => {
+      this.memoController.createMemo(req, res, next);
+    };
+    
+    const createMemoComment = (req: Request, res: Response, next: NextFunction) => {
+      this.memoController.createMemoComment(req, res, next);
+    };
+    
+    const updateMemo = (req: Request, res: Response, next: NextFunction) => {
+      this.memoController.updateMemo(req, res, next);
+    };
+    
+    const getMemos = (req: Request, res: Response, next: NextFunction) => {
+      this.memoController.getMemos(req, res, next);
+    };
+    
+    const getMemoById = (req: Request, res: Response, next: NextFunction) => {
+      this.memoController.getMemoById(req, res, next);
+    };
+    
+    const getMemosByUserIdByDate = (req: Request, res: Response, next: NextFunction) => {
+      this.memoController.getMemosByUserIdByDate(req, res, next);
+    };
+
+    // Register routes with proper handlers
+    this.router.post("/", memoValidation, verifyToken, createMemo);
+    this.router.post("/comment/:id", memoValidationComment, verifyToken, createMemoComment);
+    this.router.patch("/:id", memoValidation, verifyToken, updateMemo);
+    this.router.get("/", verifyToken, getMemos);
+    this.router.get("/:id", verifyToken, getMemoById);
+    this.router.get("/:userId/:startDate/:endDate/:lecturer", verifyToken, getMemosByUserIdByDate);
   }
 
   getRouter(): Router {

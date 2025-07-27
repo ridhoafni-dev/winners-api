@@ -1,11 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import prisma from "../prisma";
 import fs from "fs";
-import {
-  deleteFromSupabase,
-  replaceImageInSupabase,
-  uploadToSupabase,
-} from "../utils/supabaseStorage";
 
 export class ObservationController {
   async getObservations(req: Request, res: Response, next: NextFunction) {
@@ -20,18 +15,20 @@ export class ObservationController {
         },
       });
 
-      // dataObservations = dataObservations.map((data) => {
-      //   return {
-      //     ...data,
-      //     image: `${req.get("host")}/${data.image}`,
-      //   };
-      // });
-
+      dataObservations = dataObservations.map((data) => {
+        return {
+          ...data,
+          image: `${req.get("host")}/${data.image}`,
+        };
+      });
       return res.status(200).send({ status: true, data: dataObservations });
     } catch (error) {
       next(error);
     }
   }
+
+
+
 
   async getObservationsByUserId(
     req: Request,
@@ -62,14 +59,62 @@ export class ObservationController {
         },
       });
 
-      // dataObservations = dataObservations.map((data) => {
-      //   return {
-      //     ...data,
-      //     image: `${req.get("host")}/${data.image}`,
-      //   };
-      // });
+      dataObservations = dataObservations.map((data) => {
+        return {
+          ...data,
+          image: `${req.get("host")}/${data.image}`,
+        };
+      });
 
       return res.status(200).send({ status: true, data: dataObservations });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+
+  async getObservationById(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const { id } = req.params;
+
+      const checkObservation = await prisma.observation.findUnique({
+        where: {
+          id: Number(id),
+        },
+      });
+
+      if (!checkObservation) {
+        throw new Error("Observation not found");
+      }
+
+      let dataObservation = await prisma.observation.findUnique({
+        where: {
+          id: Number(id),
+        },
+        include: {
+          user: { select: { id: true, email: true, role: true } },
+          observationComments: true,
+          observationLecturers: {
+            select: { userId: true },
+          },
+        },
+      });
+
+      if (!dataObservation?.user) {
+        throw new Error("Observation data is incomplete");
+      }
+      dataObservation = {
+        ...dataObservation,
+        image: `${req.get("host")}/${dataObservation.image}`,
+        user: dataObservation.user,
+        observationComments: dataObservation.observationComments,
+      };
+
+      return res.status(200).send({ status: true, data: dataObservation });
     } catch (error) {
       next(error);
     }
@@ -112,7 +157,7 @@ export class ObservationController {
       let mapped = dataObservations.map((data) => {
         return {
           ...data,
-          //image: `${req.get("host")}/${data.image}`,
+          image: `${req.get("host")}/${data.image}`,
           createAt: data.createAt.toISOString(),
         };
       });
@@ -129,67 +174,9 @@ export class ObservationController {
     }
   }
 
-  // observation.controller.ts
   async createObservation(req: Request, res: Response, next: NextFunction) {
     try {
       const { userId, name, description, date, lecturerId } = req.body;
-
-      // Pre-transaction checks and file upload
-      const [checkUser, imageUrl] = await Promise.all([
-        prisma.user.findUnique({
-          where: { id: Number(userId) },
-        }),
-        req.file ? uploadToSupabase(req.file) : Promise.resolve(null),
-      ]);
-
-      if (!checkUser) {
-        throw new Error("User not found");
-      }
-
-      // Database transaction with increased timeout
-      const result = await prisma.$transaction(
-        async (tx) => {
-          const observation = await tx.observation.create({
-            data: {
-              userId: Number(userId),
-              name,
-              description,
-              date: new Date(date),
-              image: imageUrl || "",
-            },
-          });
-
-          await tx.observationLecturer.create({
-            data: {
-              userId: Number(lecturerId),
-              observationId: observation.id,
-            },
-          });
-
-          return observation;
-        },
-        {
-          maxWait: 5000, // Max time to wait for transaction
-          timeout: 15000, // Increased transaction timeout to 15s
-        }
-      );
-
-      return res.status(200).json({
-        status: true,
-        data: result,
-      });
-    } catch (error) {
-      console.error("Transaction error:", error);
-      next(error);
-    }
-  } // observation.controller.ts
-
-  async deleteObservation(req: Request, res: Response, next: NextFunction) {
-    try {
-      // const { userId, name, description, date, active } = req.body;
-      const { id } = req.params;
-      const userId = req.dataUser?.id;
-
       const checkUser = await prisma.user.findUnique({
         where: {
           id: Number(userId),
@@ -197,40 +184,39 @@ export class ObservationController {
       });
 
       if (!checkUser) {
+        fs.unlink(`./public/image/${req.file?.filename}`, () => {});
         throw new Error("User not found");
       }
 
-      const checkObservation = await prisma.observation.findUnique({
-        where: { id: Number(id) },
+      await prisma.$transaction(async (tx) => {
+        const createObservation = await tx.observation.create({
+          data: {
+            userId: Number(userId),
+            name,
+            description,
+            date: new Date(date),
+            image: `image/${req.file?.filename}`,
+          },
+        });
+
+        await tx.observationLecturer.create({
+          data: {
+            userId: Number(lecturerId),
+            observationId: Number(createObservation.id),
+          },
+        });
+
+        return res.status(200).send({ status: true, data: createObservation });
       });
-
-      if (!checkObservation) {
-        throw new Error("Observation not found");
-      }
-
-      await deleteFromSupabase(checkObservation.image);
-
-      const updateObservation = await prisma.observation.delete({
-        where: { id: Number(id) },
-      });
-
-      return res.status(200).send({
-        success: true,
-        data: {
-          data: updateObservation,
-        },
-      });
-      7848999999;
-    } catch (error: any) {
+    } catch (error) {
       next(error);
     }
   }
 
   async updateObservation(req: Request, res: Response, next: NextFunction) {
     try {
-      const { name, description, date, active } = req.body;
+      const { userId, name, description, date, lecturerId, active } = req.body;
       const { id } = req.params;
-      const userId = req.dataUser?.id;
 
       const checkUser = await prisma.user.findUnique({
         where: {
@@ -250,39 +236,25 @@ export class ObservationController {
         throw new Error("Observation not found");
       }
 
-      // await deleteFromSupabase(checkObservation.image);
-
-      let newImage = null;
-
       if (req.file?.filename) {
-        try {
-          newImage = await replaceImageInSupabase(
-            checkObservation.image,
-            req.file
-          );
-        } catch (error) {
-          console.error("Error deleting old image:", error);
-          throw new Error("Failed to delete old image");
-        }
-
-        // fs.unlink(
-        //   "./public/image/" + checkObservation.image.replace("image/", ""),
-        //   (err) => {
-        //     if (err) {
-        //       console.log(err);
-        //       throw new Error(err.message);
-        //     }
-        //   }
-        // );
+        fs.unlink(
+          "./public/image/" + checkObservation.image.replace("image/", ""),
+          (err) => {
+            if (err) {
+              console.log(err);
+              throw new Error(err.message);
+            }
+          }
+        );
       }
 
-      const updateObservation = await prisma.observation.update({
+      await prisma.$transaction(async (tx) => {
+        const updateObservation = await prisma.observation.update({
         where: { id: Number(id) },
         data: {
-          // ...(req.file?.filename
-          //   ? { image: `image/${req.file?.filename}` }
-          //   : {}),
-          ...(req.file?.filename ? { image: newImage || "" } : {}),
+          ...(req.file?.filename
+            ? { image: `image/${req.file?.filename}` }
+            : {}),
           userId: Number(userId),
           name,
           description,
@@ -292,12 +264,22 @@ export class ObservationController {
         },
       });
 
+        await tx.observationLecturer.update({
+          where: {
+            observationId: Number(id),
+          },
+          data: {
+            userId: Number(lecturerId),
+          },
+        });
+
       return res.status(200).send({
         success: true,
         data: {
           data: updateObservation,
         },
-      });
+      });      });
+
     } catch (error: any) {
       next(error);
     }
@@ -313,7 +295,7 @@ export class ObservationController {
       const { id } = req.params;
       const checkUser = await prisma.user.findUnique({
         where: {
-          id: userId,
+          id: Number(userId),
         },
       });
 
@@ -340,7 +322,7 @@ export class ObservationController {
 
       const createObservationComment = await prisma.observationComment.create({
         data: {
-          userId,
+          userId: Number(userId),
           rating: Number(rating),
           comment,
           observationId: Number(id),

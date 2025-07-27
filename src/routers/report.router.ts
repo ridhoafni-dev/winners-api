@@ -1,9 +1,8 @@
-import { Router } from "express";
+import { Router, Request, Response, NextFunction } from "express";
 import { reportValidation } from "../middleware/validator";
 import { uploader } from "../middleware/uploader";
 import { verifyToken } from "../middleware/verifyToken";
 import { ReportController } from "../controllers/report.controller";
-import { handleUploadDoc } from "../utils/supabaseStorage";
 
 export class ReportRouter {
   private router: Router;
@@ -16,36 +15,60 @@ export class ReportRouter {
   }
 
   private init(): void {
+    // Create bound methods for router handlers
+    const createReport = (req: Request, res: Response, next: NextFunction) => {
+      this.reportController.createReport(req, res, next);
+    };
+    
+    const updateReport = (req: Request, res: Response, next: NextFunction) => {
+      this.reportController.updateReport(req, res, next);
+    };
+    
+    const getReportById = (req: Request, res: Response, next: NextFunction) => {
+      this.reportController.getReportById(req, res, next);
+    };
+    
+    const getReportsByUserId = (req: Request, res: Response, next: NextFunction) => {
+      this.reportController.getReportsByUserId(req, res, next);
+    };
+    
+    const getReportsByUserIdByDate = (req: Request, res: Response, next: NextFunction) => {
+      this.reportController.getReportsByUserIdByDate(req, res, next);
+    };
+    
+    const downloadDocument = (req: Request, res: Response, next: NextFunction) => {
+      this.reportController.downloadDocument(req, res, next);
+    };
+    
     this.router.post(
       "/",
       verifyToken,
-      // uploader("DOC", "/document").single("document"),
-      handleUploadDoc,
+      uploader("DOC", "/document").single("document"),
       reportValidation,
-      this.reportController.createReport
+      createReport
     );
-
     this.router.patch(
       "/:id",
       verifyToken,
-      // uploader("DOC", "/document").single("document"),
-      // handleUploadDoc,
+      uploader("DOC", "/document").single("document"),
       reportValidation,
-      this.reportController.updateReport
+      updateReport
     );
-
-    this.router.get("/", verifyToken, this.reportController.getReports);
-
+    this.router.get("/:id", verifyToken, getReportById);
     this.router.get(
       "/:userId",
       verifyToken,
-      this.reportController.getReportsByUserId
+      getReportsByUserId
     );
-
     this.router.get(
       "/:userId/:startDate/:endDate/:lecturer",
       verifyToken,
-      this.reportController.getReportsByUserIdByDate
+      getReportsByUserIdByDate
+    );
+    this.router.get(
+      "/download/:id",
+      verifyToken,
+      downloadDocument
     );
   }
 

@@ -19,32 +19,23 @@ export class ActivityPlanController {
     }
   }
 
-  async getActivityPlansByUserId(
+  async getActivityPlanById(
     req: Request,
     res: Response,
     next: NextFunction
   ) {
     try {
-      const { userId } = req.params;
+      const { id } = req.params;
 
-      const checkUser = await prisma.user.findUnique({
+      const dataActivityPlans = await prisma.activityPlan.findUnique({
         where: {
-          id: Number(userId),
-        },
-      });
-
-      if (!checkUser) {
-        throw new Error("User not found");
-      }
-
-      const dataActivityPlans = await prisma.activityPlan.findMany({
-        where: {
-          userId: Number(userId),
+          id: Number(id),
           active: true,
         },
         include: {
           user: { select: { id: true, email: true, role: true } },
           activityPlanComment: true,
+          activityPlanLecturer: true,
         },
       });
       return res.status(200).send({ status: true, data: dataActivityPlans });
