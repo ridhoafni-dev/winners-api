@@ -51,6 +51,26 @@ export class ReportController {
     }
   }
 
+  async getReportById(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+
+      const dataReport = await prisma.report.findUnique({
+        where: {
+          id: Number(id),
+          active: true,
+        },
+        include: {
+          user: { select: { id: true, email: true, role: true } },
+          reportLecturer: true,
+        },
+      });
+      return res.status(200).send({ status: true, data: dataReport });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async getReportsByUserIdByDate(
     req: Request,
     res: Response,
@@ -119,7 +139,7 @@ export class ReportController {
       }
 
       await prisma.$transaction(async (tx) => {
-        const createReport = await prisma.report.create({
+        const createReport = await tx.report.create({
           data: {
             userId: Number(userId),
             date: new Date(date),
@@ -144,7 +164,7 @@ export class ReportController {
 
   async updateReport(req: Request, res: Response, next: NextFunction) {
     try {
-      const { userId, date, active } = req.body;
+      const { userId, date, lecturerId } = req.body;
       const { id } = req.params;
 
       const checkUser = await prisma.user.findUnique({
@@ -179,25 +199,39 @@ export class ReportController {
         );
       }
 
-      const updateReport = await prisma.report.update({
+
+  await prisma.$transaction(async (tx) => {
+
+      const updateReport = await tx.report.update({
         where: { id: Number(id) },
         data: {
           userId: Number(userId),
           ...(req.file?.filename
             ? { image: `document/${req.file?.filename}` }
             : {}),
-          active: JSON.parse(active),
+          active: true,
           date: new Date(date),
           updatedAt: new Date().toISOString(),
         },
       });
 
-      return res.status(200).send({
+        await tx.reportLecturer.update({
+          where: {
+              reportId: Number(id),
+            },
+          data: {
+            userId: Number(lecturerId),
+          },
+        });
+
+        return res.status(200).send({
         success: true,
         data: {
           data: updateReport,
         },
       });
+      });
+
     } catch (error: any) {
       next(error);
     }

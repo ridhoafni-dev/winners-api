@@ -189,7 +189,7 @@ export class ObservationController {
       }
 
       await prisma.$transaction(async (tx) => {
-        const createObservation = await prisma.observation.create({
+        const createObservation = await tx.observation.create({
           data: {
             userId: Number(userId),
             name,
@@ -212,48 +212,6 @@ export class ObservationController {
       next(error);
     }
   }
-
-  // async deleteObservation(req: Request, res: Response, next: NextFunction) {
-  //   try {
-  //     // const { userId, name, description, date, active } = req.body;
-  //     const { id } = req.params;
-  //     const userId = req.dataUser?.id;
-
-  //     const checkUser = await prisma.user.findUnique({
-  //       where: {
-  //         id: Number(userId),
-  //       },
-  //     });
-
-  //     if (!checkUser) {
-  //       throw new Error("User not found");
-  //     }
-
-  //     const checkObservation = await prisma.observation.findUnique({
-  //       where: { id: Number(id) },
-  //     });
-
-  //     if (!checkObservation) {
-  //       throw new Error("Observation not found");
-  //     }
-
-  //     await deleteFromSupabase(checkObservation.image);
-
-  //     const updateObservation = await prisma.observation.delete({
-  //       where: { id: Number(id) },
-  //     });
-
-  //     return res.status(200).send({
-  //       success: true,
-  //       data: {
-  //         data: updateObservation,
-  //       },
-  //     });
-  //     7848999999;
-  //   } catch (error: any) {
-  //     next(error);
-  //   }
-  // }
 
   async updateObservation(req: Request, res: Response, next: NextFunction) {
     try {

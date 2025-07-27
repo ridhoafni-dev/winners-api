@@ -179,7 +179,7 @@ model SelfEvaluation {
   createAt                DateTime                @default(now()) @db.Timestamp(6)
   updatedAt               DateTime?               @updatedAt
   active                  Boolean?                @default(true)
-  selfEvaluation          SelfEvaluationComment?
+  selfEvaluationComments  SelfEvaluationComment?
   selfEvaluationLecturer  SelfEvaluationLecturer?
 }
 

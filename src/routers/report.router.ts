@@ -24,8 +24,8 @@ export class ReportRouter {
       this.reportController.updateReport(req, res, next);
     };
     
-    const getReports = (req: Request, res: Response, next: NextFunction) => {
-      this.reportController.getReports(req, res, next);
+    const getReportById = (req: Request, res: Response, next: NextFunction) => {
+      this.reportController.getReportById(req, res, next);
     };
     
     const getReportsByUserId = (req: Request, res: Response, next: NextFunction) => {
@@ -54,7 +54,7 @@ export class ReportRouter {
       reportValidation,
       updateReport
     );
-    this.router.get("/", verifyToken, getReports);
+    this.router.get("/:id", verifyToken, getReportById);
     this.router.get(
       "/:userId",
       verifyToken,

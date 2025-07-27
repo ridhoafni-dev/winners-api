@@ -1,11 +1,7 @@
-import { Router } from "express";
-import {
-  memoValidationComment,
-  observationValidation,
-} from "../middleware/validator";
+import { Router, Request, Response, NextFunction } from "express";
+import { verifyToken } from "../middleware/verifyToken";
 import { ObservationController } from "../controllers/observation.controller";
 import { uploader } from "../middleware/uploader";
-import { verifyToken } from "../middleware/verifyToken";
 
 export class ObservationRouter {
   private router: Router;
@@ -18,44 +14,75 @@ export class ObservationRouter {
   }
 
   private init(): void {
+    // Create bound methods for router handlers
+    const createObservation = (
+      req: Request,
+      res: Response,
+      next: NextFunction
+    ) => {
+      this.observationController.createObservation(req, res, next);
+    };
+
+    const updateObservation = (
+      req: Request,
+      res: Response,
+      next: NextFunction
+    ) => {
+      this.observationController.updateObservation(req, res, next);
+    };
+
+    const getObservations = (
+      req: Request,
+      res: Response,
+      next: NextFunction
+    ) => {
+      this.observationController.getObservations(req, res, next);
+    };
+
+    const getObservationById = (
+      req: Request,
+      res: Response,
+      next: NextFunction
+    ) => {
+      this.observationController.getObservationById(req, res, next);
+    };
+
+    const getObservationsByUserId = (
+      req: Request,
+      res: Response,
+      next: NextFunction
+    ) => {
+      this.observationController.getObservationsByUserId(req, res, next);
+    };
+
+    const getObservationsByUserIdByDate = (
+      req: Request,
+      res: Response,
+      next: NextFunction
+    ) => {
+      this.observationController.getObservationsByUserIdByDate(req, res, next);
+    };
+
+    // Register routes with bound methods
     this.router.post(
       "/",
+      verifyToken,
       uploader("IMG", "/image").single("image"),
-      observationValidation,
-      verifyToken,
-      this.observationController.createObservation
-    );
-    this.router.post(
-      "/comment/:id",
-      verifyToken,
-      memoValidationComment,
-      this.observationController.createObservationComment
+      createObservation
     );
     this.router.patch(
       "/:id",
       verifyToken,
       uploader("IMG", "/image").single("image"),
-      this.observationController.updateObservation
+      updateObservation
     );
-    this.router.get(
-      "/",
-      verifyToken,
-      this.observationController.getObservations
-    );
-    // this.router.get(
-    //   "/:userId",
-    //   verifyToken,
-    //   this.observationController.getObservationsByUserId
-    // );
-     this.router.get(
-      "/:id",
-      verifyToken,
-      this.observationController.getObservationById
-    );
+    this.router.get("/", verifyToken, getObservations);
+    this.router.get("/:id", verifyToken, getObservationById);
+    this.router.get("/user/:userId", verifyToken, getObservationsByUserId);
     this.router.get(
       "/:userId/:startDate/:endDate/:lecturer",
       verifyToken,
-      this.observationController.getObservationsByUserIdByDate
+      getObservationsByUserIdByDate
     );
   }
 
